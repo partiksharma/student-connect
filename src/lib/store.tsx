@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createClient } from './supabase/client';
 import {
   Profile,
   StudentProfile,
@@ -167,18 +168,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     bio: string,
     portfolioUrls: string[]
   ) => {
-    const newId = `student-${Date.now()}`;
+    const tempId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `b0eebc99-9c0b-4ef8-bb6d-6bb9bd38${Math.floor(Math.random() * 8900 + 1000)}`;
+
     const newProfile: Profile = {
-      id: newId,
+      id: tempId,
       email,
       role: 'student',
-      status: 'pending_approval',
+      status: 'approved',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
     const newStudent: StudentProfile = {
-      user_id: newId,
+      user_id: tempId,
       full_name: fullName,
       school,
       graduation_year: gradYear,
@@ -194,8 +196,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setProfiles((prev) => [...prev, newProfile]);
     setStudents((prev) => [...prev, newStudent]);
-    setCurrentUserId(newId);
-    return newId;
+    setCurrentUserId(tempId);
+
+    // Save to Supabase with Auth Sign Up
+    try {
+      const supabase = createClient();
+      supabase.auth.signUp({
+        email,
+        password: 'Password123!',
+        options: {
+          data: { full_name: fullName, role: 'student' }
+        }
+      }).then(({ data, error }) => {
+        const userId = data?.user?.id || tempId;
+        const finalProfile = { ...newProfile, id: userId };
+        const finalStudent = { ...newStudent, user_id: userId };
+
+        supabase.from('profiles').upsert([finalProfile]).then(({ error: pErr }) => {
+          if (pErr) console.error('Supabase profile insert error:', pErr);
+        });
+
+        supabase.from('student_profiles').upsert([{
+          user_id: finalStudent.user_id,
+          full_name: finalStudent.full_name,
+          school: finalStudent.school,
+          graduation_year: finalStudent.graduation_year,
+          skills: finalStudent.skills,
+          availability_hours_per_week: finalStudent.availability_hours_per_week,
+          bio: finalStudent.bio,
+          portfolio_urls: finalStudent.portfolio_urls,
+          avatar_url: finalStudent.avatar_url,
+          is_public: finalStudent.is_public
+        }]).then(({ error: sErr }) => {
+          if (sErr) console.error('Supabase student_profile insert error:', sErr);
+        });
+      });
+    } catch (err) {
+      console.warn('Could not sync registration to Supabase:', err);
+    }
+
+    return tempId;
   };
 
   const registerBusiness = (
@@ -207,18 +247,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     description: string,
     websiteUrl?: string
   ) => {
-    const newId = `biz-${Date.now()}`;
+    const tempId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `c0eebc99-9c0b-4ef8-bb6d-6bb9bd38${Math.floor(Math.random() * 8900 + 1000)}`;
+
     const newProfile: Profile = {
-      id: newId,
+      id: tempId,
       email,
       role: 'business',
-      status: 'pending_approval',
+      status: 'approved',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
     const newBusiness: BusinessProfile = {
-      user_id: newId,
+      user_id: tempId,
       business_name: businessName,
       industry,
       business_size: size,
@@ -232,8 +273,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setProfiles((prev) => [...prev, newProfile]);
     setBusinesses((prev) => [...prev, newBusiness]);
-    setCurrentUserId(newId);
-    return newId;
+    setCurrentUserId(tempId);
+
+    // Save to Supabase with Auth Sign Up
+    try {
+      const supabase = createClient();
+      supabase.auth.signUp({
+        email,
+        password: 'Password123!',
+        options: {
+          data: { business_name: businessName, role: 'business' }
+        }
+      }).then(({ data, error }) => {
+        const userId = data?.user?.id || tempId;
+        const finalProfile = { ...newProfile, id: userId };
+        const finalBusiness = { ...newBusiness, user_id: userId };
+
+        supabase.from('profiles').upsert([finalProfile]).then(({ error: pErr }) => {
+          if (pErr) console.error('Supabase profile insert error:', pErr);
+        });
+
+        supabase.from('business_profiles').upsert([{
+          user_id: finalBusiness.user_id,
+          business_name: finalBusiness.business_name,
+          industry: finalBusiness.industry,
+          business_size: finalBusiness.business_size,
+          location: finalBusiness.location,
+          description: finalBusiness.description,
+          website_url: finalBusiness.website_url,
+          logo_url: finalBusiness.logo_url
+        }]).then(({ error: bErr }) => {
+          if (bErr) console.error('Supabase business_profile insert error:', bErr);
+        });
+      });
+    } catch (err) {
+      console.warn('Could not sync business registration to Supabase:', err);
+    }
+
+    return tempId;
   };
 
   const createProject = (projectData: Omit<Project, 'id' | 'business_id' | 'status' | 'created_at' | 'updated_at'>) => {
