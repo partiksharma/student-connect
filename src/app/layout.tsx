@@ -19,6 +19,15 @@ export const metadata: Metadata = {
   title: 'StudentConnect | Real-World Project Platform for Students & Small Businesses',
   description:
     'A free platform connecting driven students with small businesses for real-world project engagements, mutual learning, and portfolio building.',
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/icon.png', sizes: '500x500', type: 'image/png' },
+      { url: '/favicon.png', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({
