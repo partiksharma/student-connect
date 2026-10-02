@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
     <div className="max-w-md w-full mx-auto px-6 py-12">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6">
         <div className="text-center space-y-3">
-          <div className="w-12 h-12 mx-auto rounded-2xl bg-[#7A1C2E] flex items-center justify-center text-white p-2.5 shadow-lg shadow-[#7A1C2E]/20">
+          <div className="w-12 h-12 mx-auto rounded-2xl bg-[#0D3D2B] flex items-center justify-center text-white p-2.5 shadow-lg shadow-[#0D3D2B]/20">
             <LogoIcon className="w-full h-full text-white" />
           </div>
           <div>

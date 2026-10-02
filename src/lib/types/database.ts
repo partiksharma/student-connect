@@ -1,6 +1,6 @@
 export type UserRole = 'student' | 'business' | 'admin';
 export type AccountStatus = 'pending_approval' | 'approved' | 'rejected' | 'suspended';
-export type ProjectStatus = 'draft' | 'pending_approval' | 'open' | 'in_progress' | 'completed' | 'cancelled';
+export type ProjectStatus = 'draft' | 'pending_approval' | 'open' | 'in_progress' | 'completed' | 'cancelled' | 'rejected';
 export type ApplicationStatus = 'pending' | 'shortlisted' | 'accepted' | 'rejected' | 'withdrawn';
 export type WorkspaceStatus = 'not_started' | 'in_progress' | 'under_review' | 'completed';
 export type ReportStatus = 'pending' | 'resolved' | 'dismissed';
@@ -213,4 +213,16 @@ export interface Report {
   status: ReportStatus;
   created_at: string;
   updated_at: string;
+}
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: 'application_accepted' | 'application_rejected' | 'feedback_received' | 'message' | 'system';
+  title: string;
+  message: string;
+  project_id?: string;
+  workspace_id?: string;
+  is_read: boolean;
+  created_at: string;
 }

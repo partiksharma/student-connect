@@ -39,25 +39,25 @@ export function formatTimeAgo(dateString: string) {
 export function getCategoryBadgeClass(category: string) {
   switch (category) {
     case 'marketing':
-      return 'bg-amber-100/80 text-amber-900 border-amber-300/80';
+      return 'bg-[#E6F3EC] text-[#0D3D2B] border-[#CDE5D7]';
     case 'web_tech':
-      return 'bg-[#7A1C2E]/10 text-[#7A1C2E] border-[#7A1C2E]/20';
+      return 'bg-[#0D3D2B]/10 text-[#0D3D2B] border-[#0D3D2B]/20';
     case 'design':
-      return 'bg-amber-50 text-[#8B1E3F] border-amber-200';
+      return 'bg-[#EFE9DE] text-[#243B2E] border-[#DDD5C7]';
     case 'content':
-      return 'bg-yellow-100/70 text-yellow-900 border-yellow-300/80';
+      return 'bg-[#F2EFE8] text-[#2C3E33] border-[#DDD8CD]';
     case 'data_analytics':
       return 'bg-blue-100/70 text-blue-900 border-blue-300/80';
     case 'video_media':
       return 'bg-purple-100/70 text-purple-900 border-purple-300/80';
     case 'social_media':
-      return 'bg-rose-100/70 text-rose-900 border-rose-300/80';
+      return 'bg-[#E6F3EC] text-[#145339] border-[#BFE0CE]';
     case 'finance':
       return 'bg-emerald-100/70 text-emerald-900 border-emerald-300/80';
     case 'operations':
       return 'bg-stone-100 text-stone-800 border-stone-200';
     case 'research':
-      return 'bg-cyan-100/70 text-cyan-900 border-cyan-300/80';
+      return 'bg-teal-100/70 text-teal-900 border-teal-300/80';
     case 'sales':
       return 'bg-orange-100/70 text-orange-900 border-orange-300/80';
     default:

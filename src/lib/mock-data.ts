@@ -42,6 +42,14 @@ export const INITIAL_PROFILES: Profile[] = [
     updated_at: new Date().toISOString(),
   },
   {
+    id: 'nextphase-client-id',
+    email: 'nextphase@gmail.com',
+    role: 'business',
+    status: 'approved',
+    created_at: new Date(Date.now() - 10 * 86400000).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
     id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     email: 'admin@platform.internal',
     role: 'admin',
@@ -58,9 +66,9 @@ export const INITIAL_STUDENTS: StudentProfile[] = [
     school: 'State University',
     major: 'Computer Science & Human-Computer Interaction',
     graduation_year: 2026,
-    skills: ['React', 'Next.js', 'Tailwind CSS', 'Figma', 'UI/UX Design', 'TypeScript'],
+    skills: ['React', 'Next.js', 'Tailwind CSS', 'Figma', 'UI/UX Design', 'TypeScript', 'Thumbnail Design', 'Photoshop'],
     availability_hours_per_week: 10,
-    bio: 'Junior CS student eager to build high-performance web applications and sleek landing pages for local businesses in exchange for real-world experience and portfolio credits.',
+    bio: 'Junior CS student eager to build high-performance web applications, sleek landing pages, and high-CTR thumbnail graphics for business clients.',
     portfolio_urls: ['https://github.com/sarahchen-dev', 'https://behance.net/sarahchen-design'],
     github_url: 'https://github.com/sarahchen-dev',
     linkedin_url: 'https://linkedin.com/in/sarahchen',
@@ -77,7 +85,7 @@ export const INITIAL_STUDENTS: StudentProfile[] = [
     school: 'Institute of Technology',
     major: 'Digital Marketing & Content Strategy',
     graduation_year: 2025,
-    skills: ['Social Media Marketing', 'SEO Copywriting', 'Canva', 'Instagram Reels', 'Google Ads', 'Email Newsletters'],
+    skills: ['Social Media Marketing', 'SEO Copywriting', 'Canva', 'Instagram Reels', 'Google Ads', 'Thumbnail Design'],
     availability_hours_per_week: 8,
     bio: 'Marketing senior passionate about helping independent shops grow their organic reach, craft engaging viral reels, and improve local Google Maps SEO ranking.',
     portfolio_urls: ['https://instagram.com/alexmarketing', 'https://medium.com/@alexrivera'],
@@ -92,6 +100,21 @@ export const INITIAL_STUDENTS: StudentProfile[] = [
 ];
 
 export const INITIAL_BUSINESSES: BusinessProfile[] = [
+  {
+    user_id: 'nextphase-client-id',
+    business_name: 'nextphase',
+    industry: 'Media & Digital Content',
+    business_size: '1-10 employees',
+    location: 'Remote / Global',
+    website_url: 'https://nextphase.media',
+    description: 'Digital creator studio creating high-growth content, video productions, and social media campaigns.',
+    logo_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80',
+    contact_person: 'nextphase',
+    verified_business: true,
+    projects_posted_count: 1,
+    created_at: new Date(Date.now() - 10 * 86400000).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
   {
     user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
     business_name: 'Hearth & Stone Artisanal Bakery',
@@ -141,6 +164,76 @@ export const INITIAL_BUSINESSES: BusinessProfile[] = [
 
 export const INITIAL_PROJECTS: Project[] = [
   {
+    id: 'p-pending-1',
+    business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a35',
+    title: 'TikTok Short-Form Video Producer & Creator Strategy',
+    category: 'video_media',
+    description: 'Looking for an energetic student video creator to produce 10 high-energy 30-second TikToks and Reels showcasing our functional fitness classes and personal trainer tips.',
+    problem_statement: 'We have great class energy, but we lack high-converting vertical video content to reach young athletes on TikTok and Instagram Reels.',
+    deliverables_description: '1. 10 edited vertical short-form videos with captions\n2. Hook scripts and trending sound recommendations\n3. Source video files and project templates.',
+    skills_required: ['CapCut', 'Premiere Pro', 'TikTok', 'Video Editing', 'Content Strategy'],
+    estimated_hours_per_week: 6,
+    duration_weeks: 3,
+    perks: [
+      'Official Client Reference & LinkedIn Endorsement',
+      'Free 3-Month Premium Gym Membership',
+      'Verified Experience Letter from UrbanFit'
+    ],
+    status: 'pending_approval',
+    applicant_count: 0,
+    featured: false,
+    created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+    updated_at: new Date().toISOString(),
+    business: INITIAL_BUSINESSES[3]
+  },
+  {
+    id: 'p-pending-2',
+    business_id: 'nextphase-client-id',
+    title: 'Mobile App UI Wireframe & Interactive Prototype',
+    category: 'design',
+    description: 'We are conceptualizing a new creator collaboration tool and need a UI/UX design student to build low and high-fidelity wireframes in Figma.',
+    problem_statement: 'We need structured user flows and a clickable prototype to present to our initial beta creators and gather early UX feedback.',
+    deliverables_description: '1. Complete Figma user flow architecture\n2. 12 High-fidelity screen designs (Mobile iOS & Android)\n3. Clickable interactive prototype\n4. Reusable Figma UI component kit.',
+    skills_required: ['Figma', 'UI/UX Design', 'Wireframing', 'User Research', 'Mobile Design'],
+    estimated_hours_per_week: 8,
+    duration_weeks: 4,
+    perks: [
+      'Verified Experience Letter signed by nextphase Founder',
+      'Feature in Creator Showcase & Full Portfolio Rights',
+      'Mentorship on Digital Product Management'
+    ],
+    status: 'pending_approval',
+    applicant_count: 0,
+    featured: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    business: INITIAL_BUSINESSES[0]
+  },
+  {
+    id: 'proj-thumbnail-designer',
+    business_id: 'nextphase-client-id',
+    title: 'Thumbnail Designer for YouTube & Social Media',
+    category: 'design',
+    description: 'Looking for a creative thumbnail designer to craft high-CTR, vibrant YouTube thumbnails and Instagram cover graphics for our upcoming digital video releases.',
+    problem_statement: 'Our current video click-through rates need a strong boost. We need high-converting, attention-grabbing thumbnail designs with bold expressive typography, dramatic color grading, and custom composition.',
+    deliverables_description: '1. 10 Custom High-CTR YouTube Thumbnails (1280x720 PNG & editable PSD)\n2. 5 Matching Instagram Story / Reel Cover Templates\n3. Source design files with editable layers & typography\n4. Brand Style Guide with optimized fonts and color presets.',
+    skills_required: ['Thumbnail Design', 'Photoshop', 'Figma', 'Graphic Design', 'Visual Hierarchy', 'Typography'],
+    estimated_hours_per_week: 8,
+    duration_weeks: 3,
+    perks: [
+      'Official Client Reference & LinkedIn Endorsement',
+      'Portfolio Showcase Rights & Live CTR Analytics Access',
+      'Long-term Freelance Retainer Opportunity',
+      'Verified Experience Letter from nextphase'
+    ],
+    status: 'in_progress',
+    applicant_count: 2,
+    featured: true,
+    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    updated_at: new Date().toISOString(),
+    business: INITIAL_BUSINESSES[0]
+  },
+  {
     id: 'p-101',
     business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
     title: 'Mobile-Responsive Online Menu & Catering Booking Page',
@@ -162,7 +255,7 @@ export const INITIAL_PROJECTS: Project[] = [
     featured: true,
     created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
     updated_at: new Date().toISOString(),
-    business: INITIAL_BUSINESSES[0]
+    business: INITIAL_BUSINESSES[1]
   },
   {
     id: 'p-102',
@@ -184,6 +277,25 @@ export const INITIAL_PROJECTS: Project[] = [
     applicant_count: 3,
     featured: true,
     created_at: new Date(Date.now() - 7 * 86400000).toISOString(),
+    updated_at: new Date().toISOString(),
+    business: INITIAL_BUSINESSES[2]
+  },
+  {
+    id: 'p-rejected-1',
+    business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
+    title: 'Automated Direct Messaging & Aggressive Cold Outreach Campaign',
+    category: 'marketing',
+    description: 'Project proposal to build mass cold DM spam scripts on Instagram and Twitter.',
+    problem_statement: 'Flagged by moderation: Violates platform safety rules on automated spamming and cold messaging.',
+    deliverables_description: 'N/A - Scope prohibited under community terms of service.',
+    skills_required: ['Spam Automation', 'Cold Outreach'],
+    estimated_hours_per_week: 5,
+    duration_weeks: 1,
+    perks: ['N/A'],
+    status: 'rejected',
+    applicant_count: 0,
+    featured: false,
+    created_at: new Date(Date.now() - 4 * 86400000).toISOString(),
     updated_at: new Date().toISOString(),
     business: INITIAL_BUSINESSES[1]
   },
@@ -208,7 +320,7 @@ export const INITIAL_PROJECTS: Project[] = [
     featured: false,
     created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
     updated_at: new Date().toISOString(),
-    business: INITIAL_BUSINESSES[2]
+    business: INITIAL_BUSINESSES[3]
   },
   {
     id: 'p-104',
@@ -231,11 +343,46 @@ export const INITIAL_PROJECTS: Project[] = [
     featured: false,
     created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
     updated_at: new Date().toISOString(),
-    business: INITIAL_BUSINESSES[0]
+    business: INITIAL_BUSINESSES[1]
   }
 ];
 
 export const INITIAL_APPLICATIONS: Application[] = [
+  {
+    id: 'app-thumbnail-sarah',
+    project_id: 'proj-thumbnail-designer',
+    student_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+    pitch_note: 'Hi nextphase! I am an experienced visual designer specializing in high-CTR YouTube thumbnails and social graphics. I have created thumbnails for creator channels averaging 100k+ views using high-contrast color grading, 3D text styling, and emotional facial emphasis. I can deliver 3 concept drafts in 24 hours!',
+    estimated_days: 14,
+    proposed_milestones: [
+      'Style exploration & 3 layout mockups',
+      'Batch 1: 5 High-CTR YouTube Thumbnails',
+      'Batch 2: 5 YouTube Thumbnails + Instagram Story Covers + Layered PSDs'
+    ],
+    relevant_links: ['https://behance.net/sarahchen-design', 'https://github.com/sarahchen-dev'],
+    status: 'accepted',
+    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    updated_at: new Date().toISOString(),
+    student: INITIAL_STUDENTS[0],
+    project: INITIAL_PROJECTS[0]
+  },
+  {
+    id: 'app-thumbnail-alex',
+    project_id: 'proj-thumbnail-designer',
+    student_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23',
+    pitch_note: 'Hello nextphase! As a digital marketing & content creator senior, I specialize in thumbnail A/B testing psychology (click triggers, subject cutouts, vibrant borders). I would love to design your thumbnails and help optimize your YouTube CTR!',
+    estimated_days: 10,
+    proposed_milestones: [
+      'Thumbnail visual benchmark & CTR trigger map',
+      'Batch design of 10 customized thumbnails'
+    ],
+    relevant_links: ['https://instagram.com/alexmarketing'],
+    status: 'pending',
+    created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+    updated_at: new Date().toISOString(),
+    student: INITIAL_STUDENTS[1],
+    project: INITIAL_PROJECTS[0]
+  },
   {
     id: 'app-501',
     project_id: 'p-101',
@@ -252,7 +399,7 @@ export const INITIAL_APPLICATIONS: Application[] = [
     created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
     updated_at: new Date().toISOString(),
     student: INITIAL_STUDENTS[0],
-    project: INITIAL_PROJECTS[0]
+    project: INITIAL_PROJECTS[1]
   },
   {
     id: 'app-502',
@@ -270,7 +417,7 @@ export const INITIAL_APPLICATIONS: Application[] = [
     created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
     updated_at: new Date().toISOString(),
     student: INITIAL_STUDENTS[1],
-    project: INITIAL_PROJECTS[1]
+    project: INITIAL_PROJECTS[2]
   }
 ];
 
@@ -305,7 +452,97 @@ export const INITIAL_FEEDBACK: Feedback[] = [
   }
 ];
 
-export const INITIAL_WORKSPACES: Workspace[] = [];
+export const INITIAL_WORKSPACES: Workspace[] = [
+  {
+    id: 'ws-thumbnail-designer-1',
+    project_id: 'proj-thumbnail-designer',
+    student_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+    business_id: 'nextphase-client-id',
+    status: 'in_progress',
+    started_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    updated_at: new Date().toISOString(),
+    tasks: [
+      {
+        id: 'task-thumb-1',
+        workspace_id: 'ws-thumbnail-designer-1',
+        title: 'Kickoff: Discuss brand guidelines, fonts, and video themes',
+        is_completed: true,
+        created_by: 'nextphase-client-id',
+        created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+      },
+      {
+        id: 'task-thumb-2',
+        workspace_id: 'ws-thumbnail-designer-1',
+        title: 'Draft initial 3 thumbnail concept sketches & style directions',
+        is_completed: true,
+        created_by: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+        created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+      },
+      {
+        id: 'task-thumb-3',
+        workspace_id: 'ws-thumbnail-designer-1',
+        title: 'Complete batch of 10 High-CTR YouTube Thumbnails (1280x720 PNG/PSD)',
+        is_completed: false,
+        created_by: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+        created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+      },
+      {
+        id: 'task-thumb-4',
+        workspace_id: 'ws-thumbnail-designer-1',
+        title: 'Final review & handoff of source PSD files and Instagram covers',
+        is_completed: false,
+        created_by: 'nextphase-client-id',
+        created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+      }
+    ],
+    messages: [
+      {
+        id: 'msg-thumb-1',
+        workspace_id: 'ws-thumbnail-designer-1',
+        sender_id: 'nextphase-client-id',
+        sender_name: 'nextphase',
+        sender_role: 'business',
+        content: 'Hi Sarah! Super excited to collaborate with you on the thumbnail designer project for nextphase.',
+        is_flagged: false,
+        created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+      },
+      {
+        id: 'msg-thumb-2',
+        workspace_id: 'ws-thumbnail-designer-1',
+        sender_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+        sender_name: 'Sarah Chen',
+        sender_role: 'student',
+        content: 'Hey nextphase! Thanks for accepting my application. I have uploaded the first concept drafts and thumbnail layout variations.',
+        is_flagged: false,
+        created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+      },
+      {
+        id: 'msg-thumb-3',
+        workspace_id: 'ws-thumbnail-designer-1',
+        sender_id: 'nextphase-client-id',
+        sender_name: 'nextphase',
+        sender_role: 'business',
+        content: 'These concepts look fantastic! Let us proceed with batch 1 with the high contrast typography.',
+        is_flagged: false,
+        created_at: new Date().toISOString(),
+      }
+    ],
+    files: [
+      {
+        id: 'file-thumb-1',
+        workspace_id: 'ws-thumbnail-designer-1',
+        uploader_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+        file_name: 'nextphase_thumbnail_concepts_v1.zip',
+        file_path: '/files/nextphase_thumbnail_concepts_v1.zip',
+        file_size_bytes: 14857600,
+        mime_type: 'application/zip',
+        created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+      }
+    ]
+  }
+];
 
 export const INITIAL_REPORTS: Report[] = [];
+
 

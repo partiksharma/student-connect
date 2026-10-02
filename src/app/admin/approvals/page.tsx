@@ -1,25 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useApp } from '@/lib/store';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { formatDate, getCategoryBadgeClass, formatCategoryName } from '@/lib/utils';
+import { formatDate, formatCategoryName } from '@/lib/utils';
 import {
   ShieldCheck,
   GraduationCap,
   Building,
   Briefcase,
-  CheckCircle2,
-  XCircle,
-  Clock,
   ArrowLeft,
   Check,
-  X
+  X,
+  Clock,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 
-export default function AdminApprovalsPage() {
+type TabType = 'pending_projects' | 'approved_projects' | 'rejected_projects' | 'businesses' | 'students';
+
+function AdminApprovalsContent() {
+  const searchParams = useSearchParams();
+  const urlTab = searchParams.get('tab') as TabType | null;
+
   const {
     profiles,
     students,
@@ -31,272 +37,778 @@ export default function AdminApprovalsPage() {
     rejectProject
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'students' | 'businesses' | 'projects'>('students');
+  const [activeTab, setActiveTab] = useState<TabType>('pending_projects');
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
 
-  // Filter items in pending status
-  const pendingStudentProfiles = profiles.filter(
-    (p) => p.role === 'student' && p.status === 'pending_approval'
-  );
-  const pendingBusinessProfiles = profiles.filter(
-    (p) => p.role === 'business' && p.status === 'pending_approval'
-  );
+  useEffect(() => {
+    if (urlTab && ['pending_projects', 'approved_projects', 'rejected_projects', 'businesses', 'students'].includes(urlTab)) {
+      setActiveTab(urlTab);
+    }
+  }, [urlTab]);
+
+  const showNotice = (msg: string) => {
+    setActionNotice(msg);
+    setTimeout(() => setActionNotice(null), 4000);
+  };
+
+  // Dedicated project lists by exact status
   const pendingProjects = projects.filter((p) => p.status === 'pending_approval');
+  const approvedProjects = projects.filter((p) => p.status === 'open' || p.status === 'in_progress' || p.status === 'completed');
+  const rejectedProjects = projects.filter((p) => p.status === 'rejected' || p.status === 'cancelled');
+
+  // Dedicated user lists
+  const studentProfilesList = profiles.filter((p) => p.role === 'student');
+  const businessProfilesList = profiles.filter((p) => p.role === 'business');
+
+  const pendingStudentProfiles = studentProfilesList.filter((p) => p.status === 'pending_approval');
+  const approvedStudentProfiles = studentProfilesList.filter((p) => p.status === 'approved');
+
+  const pendingBusinessProfiles = businessProfilesList.filter((p) => p.status === 'pending_approval');
+  const approvedBusinessProfiles = businessProfilesList.filter((p) => p.status === 'approved');
+
+  const handleRejectProject = (projectId: string, title: string) => {
+    rejectProject(projectId);
+    showNotice(`Project "${title}" moved to Rejected Projects section.`);
+  };
+
+  const handleApproveProject = (projectId: string, title: string) => {
+    approveProject(projectId);
+    showNotice(`Project "${title}" approved and published to the marketplace!`);
+  };
+
+  const handleRejectUser = (userId: string, email: string) => {
+    rejectUser(userId);
+    showNotice(`Account "${email}" has been rejected.`);
+  };
+
+  const handleApproveUser = (userId: string, email: string) => {
+    approveUser(userId);
+    showNotice(`Account "${email}" approved successfully!`);
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <Link
         href="/admin/dashboard"
-        className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+        className="inline-flex items-center text-xs font-medium text-stone-400 hover:text-[#34D399] transition-colors"
       >
         <ArrowLeft className="w-4 h-4 mr-1" />
         Back to Admin Hub
       </Link>
 
-      <div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800 text-xs font-semibold text-purple-700 dark:text-purple-300 mb-2">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Admin Moderation</span>
+      {/* Floating Action Notice Toast */}
+      {actionNotice && (
+        <div className="p-4 rounded-2xl bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 text-xs font-bold flex items-center justify-between shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{actionNotice}</span>
+          </div>
+          <button
+            onClick={() => setActionNotice(null)}
+            className="text-emerald-400 hover:text-white text-xs font-bold ml-4"
+          >
+            ✕
+          </button>
         </div>
-        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
-          Platform Approval Queues
+      )}
+
+      <div>
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0D3D2B] border border-[#16563D] text-xs font-semibold text-[#A7F3D0] mb-2">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>Admin Moderation & Governance Console</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+          Platform Review & Approvals Queue
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Review pending signups and project postings before they become visible to the community.
+        <p className="text-xs text-stone-400 mt-1 max-w-2xl">
+          Manage newly submitted client projects, review live approved listings, check rejected submissions, and oversee user verification.
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6">
+      {/* Main Section Navigation Tabs */}
+      <div className="flex border-b border-stone-800 gap-2 sm:gap-6 overflow-x-auto pb-1">
+        {/* 1. New Project Applications (Pending) */}
         <button
-          onClick={() => setActiveTab('students')}
-          className={`pb-3 text-xs font-bold transition-colors cursor-pointer border-b-2 flex items-center gap-2 ${
-            activeTab === 'students'
-              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <GraduationCap className="w-4 h-4" />
-          <span>Students ({pendingStudentProfiles.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('businesses')}
-          className={`pb-3 text-xs font-bold transition-colors cursor-pointer border-b-2 flex items-center gap-2 ${
-            activeTab === 'businesses'
-              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <Building className="w-4 h-4" />
-          <span>Businesses ({pendingBusinessProfiles.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('projects')}
-          className={`pb-3 text-xs font-bold transition-colors cursor-pointer border-b-2 flex items-center gap-2 ${
-            activeTab === 'projects'
-              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          onClick={() => setActiveTab('pending_projects')}
+          className={`pb-3 text-xs font-bold transition-colors cursor-pointer border-b-2 flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'pending_projects'
+              ? 'border-amber-400 text-amber-400'
+              : 'border-transparent text-stone-400 hover:text-white'
           }`}
         >
           <Briefcase className="w-4 h-4" />
-          <span>Project Postings ({pendingProjects.length})</span>
+          <span>New Project Applications</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            pendingProjects.length > 0 ? 'bg-amber-500 text-slate-950 animate-pulse' : 'bg-stone-800 text-stone-400'
+          }`}>
+            {pendingProjects.length}
+          </span>
+        </button>
+
+        {/* 2. Approved Projects */}
+        <button
+          onClick={() => setActiveTab('approved_projects')}
+          className={`pb-3 text-xs font-bold transition-colors cursor-pointer border-b-2 flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'approved_projects'
+              ? 'border-[#34D399] text-[#34D399]'
+              : 'border-transparent text-stone-400 hover:text-white'
+          }`}
+        >
+          <Check className="w-4 h-4 text-emerald-400" />
+          <span>Approved Projects</span>
+          <span className="px-2 py-0.5 rounded-full bg-[#0D3D2B] text-[#A7F3D0] text-[10px] font-black">
+            {approvedProjects.length}
+          </span>
+        </button>
+
+        {/* 3. Rejected Projects */}
+        <button
+          onClick={() => setActiveTab('rejected_projects')}
+          className={`pb-3 text-xs font-bold transition-colors cursor-pointer border-b-2 flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'rejected_projects'
+              ? 'border-rose-400 text-rose-400'
+              : 'border-transparent text-stone-400 hover:text-white'
+          }`}
+        >
+          <X className="w-4 h-4 text-rose-400" />
+          <span>Rejected Projects</span>
+          <span className="px-2 py-0.5 rounded-full bg-rose-950 border border-rose-800 text-rose-300 text-[10px] font-black">
+            {rejectedProjects.length}
+          </span>
+        </button>
+
+        {/* 4. Student Accounts */}
+        <button
+          onClick={() => setActiveTab('students')}
+          className={`pb-3 text-xs font-bold transition-colors cursor-pointer border-b-2 flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'students'
+              ? 'border-[#34D399] text-[#34D399]'
+              : 'border-transparent text-stone-400 hover:text-white'
+          }`}
+        >
+          <GraduationCap className="w-4 h-4" />
+          <span>Student Accounts</span>
+          {pendingStudentProfiles.length > 0 ? (
+            <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black animate-pulse">
+              {pendingStudentProfiles.length} Pending
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 text-[10px] font-black">
+              {studentProfilesList.length}
+            </span>
+          )}
+        </button>
+
+        {/* 5. Business Accounts */}
+        <button
+          onClick={() => setActiveTab('businesses')}
+          className={`pb-3 text-xs font-bold transition-colors cursor-pointer border-b-2 flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'businesses'
+              ? 'border-[#34D399] text-[#34D399]'
+              : 'border-transparent text-stone-400 hover:text-white'
+          }`}
+        >
+          <Building className="w-4 h-4" />
+          <span>Client Businesses</span>
+          {pendingBusinessProfiles.length > 0 ? (
+            <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black animate-pulse">
+              {pendingBusinessProfiles.length} Pending
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 text-[10px] font-black">
+              {businessProfilesList.length}
+            </span>
+          )}
         </button>
       </div>
 
       {/* Tab Contents */}
       <div className="space-y-4">
-        {/* Student Queue */}
-        {activeTab === 'students' && (
-          <>
-            {pendingStudentProfiles.length > 0 ? (
-              pendingStudentProfiles.map((p) => {
-                const st = students.find((s) => s.user_id === p.id);
-                return (
-                  <div
-                    key={p.id}
-                    className="bg-[#58111F] rounded-3xl p-6 border border-[#7A1C2E] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
-                  >
-                    <div className="space-y-2 max-w-2xl">
-                      <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 rounded-full bg-[#E59819] text-black text-xs font-black shadow-xs">
-                          Pending Approval
-                        </span>
-                        <span className="text-xs text-amber-200/70">
-                          Joined {formatDate(p.created_at)}
-                        </span>
-                      </div>
-                      <h3 className="font-extrabold text-lg text-white">
-                        {st?.full_name || p.email}
-                      </h3>
-                      <div className="text-xs text-amber-200/80 flex items-center gap-2 font-medium">
-                        <span>{st?.school}</span>
-                        <span>•</span>
-                        <span>Class of {st?.graduation_year}</span>
-                        <span>•</span>
-                        <span>~{st?.availability_hours_per_week} hrs/wk</span>
-                      </div>
-                      <p className="text-xs text-amber-100/90 leading-relaxed italic">
-                        &ldquo;{st?.bio}&rdquo;
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40"
-                        onClick={() => rejectUser(p.id)}
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Reject
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="yellow"
-                        className="text-black font-extrabold"
-                        onClick={() => approveUser(p.id)}
-                      >
-                        <Check className="w-4 h-4 mr-1 text-black" />
-                        Approve Student
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-12 bg-[#58111F] rounded-3xl border border-[#7A1C2E] text-xs text-amber-200/70 font-medium">
-                No pending student signups.
+        {/* ========================================================================= */}
+        {/* SECTION 1: NEW PROJECT APPLICATIONS (PENDING REVIEW ONLY) */}
+        {/* ========================================================================= */}
+        {activeTab === 'pending_projects' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl">
+              <div>
+                <h2 className="text-sm font-bold text-amber-300 flex items-center gap-2">
+                  <Briefcase className="w-4 h-4" />
+                  New Incoming Project Submissions ({pendingProjects.length})
+                </h2>
+                <p className="text-[11px] text-amber-200/80 mt-0.5">
+                  These projects have been submitted by clients and are awaiting admin review. They are not visible on the marketplace until approved.
+                </p>
               </div>
-            )}
-          </>
-        )}
+            </div>
 
-        {/* Business Queue */}
-        {activeTab === 'businesses' && (
-          <>
-            {pendingBusinessProfiles.length > 0 ? (
-              pendingBusinessProfiles.map((p) => {
-                const biz = businesses.find((b) => b.user_id === p.id);
-                return (
-                  <div
-                    key={p.id}
-                    className="bg-[#58111F] rounded-3xl p-6 border border-[#7A1C2E] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
-                  >
-                    <div className="space-y-2 max-w-2xl">
-                      <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 rounded-full bg-[#E59819] text-black text-xs font-black shadow-xs">
-                          Pending Approval
-                        </span>
-                        <span className="text-xs text-amber-200/70">
-                          Registered {formatDate(p.created_at)}
-                        </span>
-                      </div>
-                      <h3 className="font-extrabold text-lg text-white">
-                        {biz?.business_name || p.email}
-                      </h3>
-                      <div className="text-xs text-amber-200/80 flex items-center gap-2 font-medium">
-                        <span>{biz?.industry}</span>
-                        <span>•</span>
-                        <span>{biz?.location}</span>
-                        <span>•</span>
-                        <span>Team size: {biz?.business_size}</span>
-                      </div>
-                      <p className="text-xs text-amber-100/90 leading-relaxed">
-                        {biz?.description}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40"
-                        onClick={() => rejectUser(p.id)}
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Reject
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="yellow"
-                        className="text-black font-extrabold"
-                        onClick={() => approveUser(p.id)}
-                      >
-                        <Check className="w-4 h-4 mr-1 text-black" />
-                        Approve Business
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-12 bg-[#58111F] rounded-3xl border border-[#7A1C2E] text-xs text-amber-200/70 font-medium">
-                No pending business signups.
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Project Postings Queue */}
-        {activeTab === 'projects' && (
-          <>
             {pendingProjects.length > 0 ? (
-              pendingProjects.map((proj) => (
-                <div
-                  key={proj.id}
-                  className="bg-[#58111F] rounded-3xl p-6 border border-[#7A1C2E] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
-                >
-                  <div className="space-y-2 max-w-2xl">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] px-3 py-1 rounded-full font-bold bg-[#7A1C2E] text-amber-200 border border-amber-500/30">
-                        {formatCategoryName(proj.category)}
-                      </span>
-                      <span className="text-xs text-amber-200/70 font-medium">
-                        {proj.estimated_hours_per_week} hrs/wk • {proj.duration_weeks} wks
-                      </span>
-                    </div>
-                    <h3 className="font-extrabold text-lg text-white">
-                      {proj.title}
-                    </h3>
-                    <p className="text-xs text-amber-100/80 line-clamp-2">{proj.description}</p>
-                    {proj.deliverables_description && (
-                      <div className="text-[11px] text-amber-200 bg-[#3D0A14] p-3 rounded-xl border border-amber-900/30">
-                        <strong className="text-amber-300">Deliverables:</strong> {proj.deliverables_description}
-                      </div>
-                    )}
-                  </div>
+              pendingProjects.map((proj) => {
+                const bizName = proj.business?.business_name || (businesses.find((b) => b.user_id === proj.business_id)?.business_name) || 'Client Partner';
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40"
-                      onClick={() => rejectProject(proj.id)}
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Reject Listing
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="yellow"
-                      className="text-black font-extrabold"
-                      onClick={() => approveProject(proj.id)}
-                    >
-                      <Check className="w-4 h-4 mr-1 text-black" />
-                      Publish to Marketplace
-                    </Button>
+                return (
+                  <div
+                    key={proj.id}
+                    className="bg-[#07261A] rounded-3xl p-6 border-2 border-amber-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white transition-all"
+                  >
+                    <div className="space-y-2.5 max-w-2xl">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[11px] px-3 py-1 rounded-full font-bold bg-[#0D3D2B] text-[#A7F3D0] border border-[#16563D]">
+                          {formatCategoryName(proj.category)}
+                        </span>
+                        <Badge variant="warning" size="sm">
+                          Pending Admin Review
+                        </Badge>
+                        <span className="text-xs text-amber-300 font-bold">
+                          Client: {bizName}
+                        </span>
+                      </div>
+
+                      <h3 className="font-extrabold text-lg text-white">
+                        {proj.title}
+                      </h3>
+                      <p className="text-xs text-emerald-100/90 leading-relaxed">{proj.description}</p>
+
+                      {proj.deliverables_description && (
+                        <div className="text-[11px] text-[#A7F3D0] bg-[#0D3D2B]/80 p-3 rounded-xl border border-[#16563D]">
+                          <strong className="text-white">Deliverables Scope:</strong> {proj.deliverables_description}
+                        </div>
+                      )}
+
+                      <div className="text-xs text-[#A7F3D0]/80 flex flex-wrap items-center gap-4 font-semibold">
+                        <span>Commitment: {proj.estimated_hours_per_week || 8} hrs/wk</span>
+                        <span>•</span>
+                        <span>Duration: {proj.duration_weeks || 4} weeks</span>
+                        <span>•</span>
+                        <span>Submitted {formatDate(proj.created_at)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40 text-xs font-bold"
+                        onClick={() => handleRejectProject(proj.id, proj.title)}
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Reject Project
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="yellow"
+                        className="font-extrabold text-xs shadow-md shadow-amber-500/20"
+                        onClick={() => handleApproveProject(proj.id, proj.title)}
+                      >
+                        <Check className="w-4 h-4 mr-1" />
+                        Approve & Publish Live
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <div className="text-center py-12 bg-[#58111F] rounded-3xl border border-[#7A1C2E] text-xs text-amber-200/70 font-medium">
-                No pending project postings to moderate.
+              <div className="text-center py-16 bg-[#07261A] rounded-3xl border border-[#16563D] text-xs text-[#A7F3D0]/70 font-medium">
+                No new pending project submissions. All incoming project applications are reviewed.
               </div>
             )}
-          </>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 2: APPROVED PROJECTS (LIVE ON MARKETPLACE) */}
+        {/* ========================================================================= */}
+        {activeTab === 'approved_projects' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl">
+              <div>
+                <h2 className="text-sm font-bold text-emerald-300 flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  Active Approved Projects ({approvedProjects.length})
+                </h2>
+                <p className="text-[11px] text-emerald-200/80 mt-0.5">
+                  These projects are currently approved, published, and visible on the marketplace for students to browse and apply.
+                </p>
+              </div>
+            </div>
+
+            {approvedProjects.length > 0 ? (
+              approvedProjects.map((proj) => {
+                const bizName = proj.business?.business_name || (businesses.find((b) => b.user_id === proj.business_id)?.business_name) || 'Client Partner';
+
+                return (
+                  <div
+                    key={proj.id}
+                    className="bg-[#07261A] rounded-3xl p-6 border border-[#16563D] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
+                  >
+                    <div className="space-y-2 max-w-2xl">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[11px] px-3 py-1 rounded-full font-bold bg-[#0D3D2B] text-[#A7F3D0] border border-[#16563D]">
+                          {formatCategoryName(proj.category)}
+                        </span>
+                        <Badge variant="success" size="sm">
+                          Live • {proj.status.toUpperCase()}
+                        </Badge>
+                        <span className="text-xs text-[#A7F3D0]/80 font-bold">
+                          Client: {bizName}
+                        </span>
+                      </div>
+
+                      <h3 className="font-extrabold text-lg text-white">
+                        {proj.title}
+                      </h3>
+                      <p className="text-xs text-emerald-100/90 leading-relaxed">{proj.description}</p>
+                      <div className="text-xs text-[#A7F3D0]/80 flex flex-wrap items-center gap-4 font-semibold">
+                        <span>Commitment: {proj.estimated_hours_per_week || 8} hrs/wk</span>
+                        <span>•</span>
+                        <span>Duration: {proj.duration_weeks || 4} weeks</span>
+                        <span>•</span>
+                        <span>Approved {formatDate(proj.created_at)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Link href={`/projects/${proj.id}`} target="_blank">
+                        <Button size="sm" variant="ghost" className="text-xs text-[#34D399] font-bold">
+                          View Live Listing ↗
+                        </Button>
+                      </Link>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40 text-xs font-bold"
+                        onClick={() => handleRejectProject(proj.id, proj.title)}
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Unpublish / Reject
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-16 bg-[#07261A] rounded-3xl border border-[#16563D] text-xs text-[#A7F3D0]/70 font-medium">
+                No approved projects currently live on the marketplace.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 3: REJECTED PROJECTS */}
+        {/* ========================================================================= */}
+        {activeTab === 'rejected_projects' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">
+              <div>
+                <h2 className="text-sm font-bold text-rose-300 flex items-center gap-2">
+                  <X className="w-4 h-4 text-rose-400" />
+                  Rejected Projects Submissions ({rejectedProjects.length})
+                </h2>
+                <p className="text-[11px] text-rose-200/80 mt-0.5">
+                  These project submissions were rejected by admin moderation and are hidden from the public website.
+                </p>
+              </div>
+            </div>
+
+            {rejectedProjects.length > 0 ? (
+              rejectedProjects.map((proj) => {
+                const bizName = proj.business?.business_name || (businesses.find((b) => b.user_id === proj.business_id)?.business_name) || 'Client Partner';
+
+                return (
+                  <div
+                    key={proj.id}
+                    className="bg-[#07261A] rounded-3xl p-6 border border-rose-900/50 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
+                  >
+                    <div className="space-y-2 max-w-2xl">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[11px] px-3 py-1 rounded-full font-bold bg-rose-950 text-rose-300 border border-rose-800">
+                          {formatCategoryName(proj.category)}
+                        </span>
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-900/60 text-rose-300 font-bold border border-rose-700">
+                          Status: Rejected
+                        </span>
+                        <span className="text-xs text-rose-200/70 font-bold">
+                          Client: {bizName}
+                        </span>
+                      </div>
+
+                      <h3 className="font-extrabold text-lg text-rose-100">
+                        {proj.title}
+                      </h3>
+                      <p className="text-xs text-stone-400 line-clamp-2">{proj.description}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="yellow"
+                        className="font-bold text-xs"
+                        onClick={() => handleApproveProject(proj.id, proj.title)}
+                      >
+                        <Check className="w-4 h-4 mr-1" />
+                        Restore & Approve
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-16 bg-[#07261A] rounded-3xl border border-[#16563D] text-xs text-[#A7F3D0]/70 font-medium">
+                No rejected projects on record.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 4: STUDENT ACCOUNTS (PENDING & APPROVED) */}
+        {/* ========================================================================= */}
+        {activeTab === 'students' && (
+          <div className="space-y-6">
+            {/* 4A. Pending Students */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl">
+                <div>
+                  <h2 className="text-sm font-bold text-amber-300 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Pending Student Signups Requiring Verification ({pendingStudentProfiles.length})
+                  </h2>
+                  <p className="text-[11px] text-amber-200/80 mt-0.5">
+                    Newly registered students who are pending review. Approving them grants platform access.
+                  </p>
+                </div>
+              </div>
+
+              {pendingStudentProfiles.length > 0 ? (
+                pendingStudentProfiles.map((p) => {
+                  const st = students.find((s) => s.user_id === p.id);
+                  const displayName = st?.full_name || p.email.split('@')[0];
+
+                  return (
+                    <div
+                      key={p.id}
+                      className="bg-[#07261A] rounded-3xl p-6 border-2 border-amber-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
+                    >
+                      <div className="space-y-2.5 max-w-2xl">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="warning" size="sm">
+                            Pending Verification
+                          </Badge>
+                          <span className="text-xs text-amber-300 font-bold">
+                            {p.email}
+                          </span>
+                          <span className="text-xs text-[#A7F3D0]/70">
+                            • Registered {formatDate(p.created_at)}
+                          </span>
+                        </div>
+
+                        <h3 className="font-extrabold text-xl text-white flex items-center gap-2">
+                          <GraduationCap className="w-5 h-5 text-amber-400" />
+                          {displayName}
+                        </h3>
+
+                        <div className="text-xs text-[#A7F3D0]/90 flex flex-wrap items-center gap-2 font-medium">
+                          <span>🏫 {st?.school || 'University Student'}</span>
+                          <span>•</span>
+                          <span>🎓 Class of {st?.graduation_year || 2027}</span>
+                          <span>•</span>
+                          <span>⏱️ {st?.availability_hours_per_week || 8} hrs/week available</span>
+                        </div>
+
+                        {st?.skills && st.skills.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {st.skills.map((skill, idx) => (
+                              <span
+                                key={idx}
+                                className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#0D3D2B] text-[#A7F3D0] border border-[#16563D] font-bold"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <p className="text-xs text-emerald-100/90 leading-relaxed italic bg-[#0D3D2B]/40 p-3 rounded-2xl border border-[#16563D]/60">
+                          &ldquo;{st?.bio || 'Enthusiastic university student ready to work on client projects.'}&rdquo;
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40 text-xs font-bold"
+                          onClick={() => handleRejectUser(p.id, p.email)}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="yellow"
+                          className="font-extrabold text-xs shadow-md shadow-amber-500/20"
+                          onClick={() => handleApproveUser(p.id, p.email)}
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Approve Student
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-10 bg-[#07261A] rounded-3xl border border-[#16563D] text-xs text-[#A7F3D0]/70 font-medium">
+                  No student accounts currently waiting for approval. All signups are verified!
+                </div>
+              )}
+            </div>
+
+            {/* 4B. Approved Students */}
+            <div className="space-y-3 pt-4">
+              <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl">
+                <div>
+                  <h2 className="text-sm font-bold text-emerald-300 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    Verified / Approved Students ({approvedStudentProfiles.length})
+                  </h2>
+                  <p className="text-[11px] text-emerald-200/80 mt-0.5">
+                    Students who have been verified and have full platform permissions to browse and apply for projects.
+                  </p>
+                </div>
+              </div>
+
+              {approvedStudentProfiles.length > 0 ? (
+                approvedStudentProfiles.map((p) => {
+                  const st = students.find((s) => s.user_id === p.id);
+                  const displayName = st?.full_name || p.email.split('@')[0];
+
+                  return (
+                    <div
+                      key={p.id}
+                      className="bg-[#07261A] rounded-3xl p-6 border border-[#16563D] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
+                    >
+                      <div className="space-y-2 max-w-2xl">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="success" size="sm">
+                            Approved Student
+                          </Badge>
+                          <span className="text-xs text-[#A7F3D0]/70">
+                            {p.email} • Joined {formatDate(p.created_at)}
+                          </span>
+                        </div>
+                        <h3 className="font-extrabold text-lg text-white">
+                          {displayName}
+                        </h3>
+                        <div className="text-xs text-[#A7F3D0]/80 flex flex-wrap items-center gap-2 font-medium">
+                          <span>{st?.school || 'University Student'}</span>
+                          <span>•</span>
+                          <span>Class of {st?.graduation_year || 2026}</span>
+                        </div>
+                        <p className="text-xs text-emerald-100/90 leading-relaxed italic">
+                          &ldquo;{st?.bio || 'Enthusiastic university student.'}&rdquo;
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40 text-xs font-bold"
+                          onClick={() => handleRejectUser(p.id, p.email)}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Revoke / Reject
+                        </Button>
+                        <div className="px-3 py-1.5 rounded-xl bg-[#0D3D2B] border border-[#16563D] text-[#34D399] text-xs font-bold flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5" />
+                          Verified
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 bg-[#07261A] rounded-3xl border border-[#16563D] text-xs text-[#A7F3D0]/70 font-medium">
+                  No approved student accounts found.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 5: CLIENT BUSINESS ACCOUNTS (PENDING & APPROVED) */}
+        {/* ========================================================================= */}
+        {activeTab === 'businesses' && (
+          <div className="space-y-6">
+            {/* 5A. Pending Businesses */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl">
+                <div>
+                  <h2 className="text-sm font-bold text-amber-300 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Pending Business Signups Requiring Verification ({pendingBusinessProfiles.length})
+                  </h2>
+                  <p className="text-[11px] text-amber-200/80 mt-0.5">
+                    Newly registered businesses waiting for moderator review before posting projects.
+                  </p>
+                </div>
+              </div>
+
+              {pendingBusinessProfiles.length > 0 ? (
+                pendingBusinessProfiles.map((p) => {
+                  const biz = businesses.find((b) => b.user_id === p.id);
+                  const bName = biz?.business_name || p.email.split('@')[0];
+
+                  return (
+                    <div
+                      key={p.id}
+                      className="bg-[#07261A] rounded-3xl p-6 border-2 border-amber-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
+                    >
+                      <div className="space-y-2.5 max-w-2xl">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="warning" size="sm">
+                            Pending Verification
+                          </Badge>
+                          <span className="text-xs text-amber-300 font-bold">
+                            {p.email}
+                          </span>
+                          <span className="text-xs text-[#A7F3D0]/70">
+                            • Registered {formatDate(p.created_at)}
+                          </span>
+                        </div>
+
+                        <h3 className="font-extrabold text-xl text-white flex items-center gap-2">
+                          <Building className="w-5 h-5 text-amber-400" />
+                          {bName}
+                        </h3>
+
+                        <div className="text-xs text-[#A7F3D0]/90 flex flex-wrap items-center gap-2 font-medium">
+                          <span>Industry: {biz?.industry || 'General'}</span>
+                          <span>•</span>
+                          <span>Location: {biz?.location || 'Local'}</span>
+                          <span>•</span>
+                          <span>Size: {biz?.business_size || 'Small'}</span>
+                        </div>
+
+                        <p className="text-xs text-emerald-100/90 leading-relaxed bg-[#0D3D2B]/40 p-3 rounded-2xl border border-[#16563D]/60">
+                          {biz?.description || 'Registered small business client account.'}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40 text-xs font-bold"
+                          onClick={() => handleRejectUser(p.id, p.email)}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="yellow"
+                          className="font-extrabold text-xs shadow-md shadow-amber-500/20"
+                          onClick={() => handleApproveUser(p.id, p.email)}
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Approve Client
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-10 bg-[#07261A] rounded-3xl border border-[#16563D] text-xs text-[#A7F3D0]/70 font-medium">
+                  No client business accounts currently waiting for approval.
+                </div>
+              )}
+            </div>
+
+            {/* 5B. Approved Businesses */}
+            <div className="space-y-3 pt-4">
+              <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl">
+                <div>
+                  <h2 className="text-sm font-bold text-emerald-300 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    Verified / Approved Businesses ({approvedBusinessProfiles.length})
+                  </h2>
+                  <p className="text-[11px] text-emerald-200/80 mt-0.5">
+                    Businesses authorized to post real projects and hire students.
+                  </p>
+                </div>
+              </div>
+
+              {approvedBusinessProfiles.length > 0 ? (
+                approvedBusinessProfiles.map((p) => {
+                  const biz = businesses.find((b) => b.user_id === p.id);
+                  const bName = biz?.business_name || p.email.split('@')[0];
+
+                  return (
+                    <div
+                      key={p.id}
+                      className="bg-[#07261A] rounded-3xl p-6 border border-[#16563D] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
+                    >
+                      <div className="space-y-2 max-w-2xl">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="success" size="sm">
+                            Approved Business
+                          </Badge>
+                          <span className="text-xs text-[#A7F3D0]/70">
+                            {p.email} • Registered {formatDate(p.created_at)}
+                          </span>
+                        </div>
+                        <h3 className="font-extrabold text-lg text-white">
+                          {bName}
+                        </h3>
+                        <div className="text-xs text-[#A7F3D0]/80 flex flex-wrap items-center gap-2 font-medium">
+                          <span>Industry: {biz?.industry || 'General'}</span>
+                          <span>•</span>
+                          <span>Location: {biz?.location || 'Local'}</span>
+                          <span>•</span>
+                          <span>Size: {biz?.business_size || 'Small'}</span>
+                        </div>
+                        <p className="text-xs text-emerald-100/90 leading-relaxed">
+                          {biz?.description || 'Registered small business client account.'}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40 text-xs font-bold"
+                          onClick={() => handleRejectUser(p.id, p.email)}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Revoke / Reject
+                        </Button>
+                        <div className="px-3 py-1.5 rounded-xl bg-[#0D3D2B] border border-[#16563D] text-[#34D399] text-xs font-bold flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5" />
+                          Verified
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 bg-[#07261A] rounded-3xl border border-[#16563D] text-xs text-[#A7F3D0]/70 font-medium">
+                  No verified business accounts found.
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
+  );
+}
+
+export default function AdminApprovalsPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-white text-xs">Loading approvals queue...</div>}>
+      <AdminApprovalsContent />
+    </Suspense>
   );
 }

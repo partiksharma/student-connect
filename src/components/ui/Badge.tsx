@@ -12,13 +12,13 @@ export function Badge({ className, variant = 'default', size = 'md', children, .
   const baseStyles = 'inline-flex items-center font-semibold rounded-full border transition-colors';
 
   const variants = {
-    default: 'bg-stone-100 text-stone-800 border-stone-200',
-    primary: 'bg-[#7A1C2E]/10 text-[#7A1C2E] border-[#7A1C2E]/20',
-    yellow: 'bg-amber-100 text-amber-900 border-amber-300',
+    default: 'bg-[#EFE9DE] text-[#1E2E25] border-[#DDD5C7]',
+    primary: 'bg-[#E6F3EC] text-[#0D3D2B] border-[#CDE5D7]',
+    yellow: 'bg-[#EFE9DE] text-[#0D3D2B] border-[#DDD5C7]',
     success: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    warning: 'bg-amber-50 text-amber-800 border-amber-200',
+    warning: 'bg-[#FAF3E8] text-[#8C6420] border-[#ECDAB8]',
     danger: 'bg-rose-50 text-rose-800 border-rose-200',
-    outline: 'border-[#7A1C2E]/30 text-[#7A1C2E] bg-transparent',
+    outline: 'border-[#0D3D2B]/30 text-[#0D3D2B] bg-transparent',
   };
 
   const sizes = {

@@ -13,8 +13,7 @@ import {
   CheckCircle2,
   XCircle,
   Building,
-  ExternalLink,
-  MessageSquare
+  ExternalLink
 } from 'lucide-react';
 
 export default function StudentApplicationsPage() {
@@ -25,10 +24,10 @@ export default function StudentApplicationsPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <div>
-        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
+        <h1 className="text-2xl sm:text-3xl font-black text-[#111C16]">
           My Applications
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-stone-500 mt-1 font-medium">
           Review all the projects you have applied to, business review statuses, and jump into accepted workspaces.
         </p>
       </div>
@@ -46,7 +45,7 @@ export default function StudentApplicationsPage() {
             return (
               <div
                 key={app.id}
-                className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+                className="bg-white rounded-3xl p-6 border border-[#E5DFD5] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-[#0D3D2B]/40 transition-colors"
               >
                 <div className="space-y-3 max-w-2xl">
                   <div className="flex flex-wrap items-center gap-2">
@@ -77,23 +76,23 @@ export default function StudentApplicationsPage() {
                       </Badge>
                     )}
 
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-stone-400 font-medium">
                       Applied {formatDate(app.created_at)}
                     </span>
                   </div>
 
                   <div>
-                    <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                    <h3 className="font-bold text-base text-[#111C16]">
                       {app.project?.title || 'Project Application'}
                     </h3>
-                    <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
-                      <Building className="w-3.5 h-3.5 text-slate-400" />
+                    <div className="text-xs text-stone-500 flex items-center gap-2 mt-0.5 font-medium">
+                      <Building className="w-3.5 h-3.5 text-[#0D3D2B]" />
                       <span>{app.project?.business?.business_name || 'Small Business Partner'}</span>
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
-                    <span className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                  <div className="p-3.5 rounded-2xl bg-[#FAF7F2] border border-[#E5DFD5] text-xs text-stone-700">
+                    <span className="font-bold text-[#0D3D2B] block mb-1">
                       Your pitch note:
                     </span>
                     <p className="italic">{app.pitch_note}</p>
@@ -121,12 +120,12 @@ export default function StudentApplicationsPage() {
           })}
         </div>
       ) : (
-        <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
-          <Briefcase className="w-10 h-10 text-slate-400 mx-auto" />
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+        <div className="text-center py-16 bg-white rounded-3xl border border-[#E5DFD5] space-y-4">
+          <Briefcase className="w-10 h-10 text-stone-400 mx-auto" />
+          <h3 className="text-base font-bold text-[#111C16]">
             No applications submitted yet
           </h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          <p className="text-xs text-stone-500 max-w-sm mx-auto">
             Browse our project catalog and submit pitch notes to small business postings.
           </p>
           <Link href="/projects">

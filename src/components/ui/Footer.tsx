@@ -14,37 +14,37 @@ export function Footer() {
   }
 
   return (
-    <footer className="border-t border-[#400B15] bg-[#58111F] text-amber-50 py-14 px-4 sm:px-6 lg:px-8 mt-auto">
+    <footer className="border-t border-[#E5DFD5] bg-[#F7F4EE] text-stone-700 py-14 px-4 sm:px-6 lg:px-8 mt-auto">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
         <div className="space-y-4 md:col-span-1">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#7A1C2E] flex items-center justify-center text-white p-1.5 shadow-sm">
+            <div className="w-8 h-8 rounded-xl bg-[#0D3D2B] flex items-center justify-center text-white p-1.5 shadow-sm">
               <LogoIcon className="w-full h-full text-white" />
             </div>
-            <span className="font-black text-lg text-white">StudentConnect</span>
+            <span className="font-black text-lg text-[#111C16]">StudentConnect</span>
           </div>
-          <p className="text-xs text-amber-200/80 leading-relaxed">
+          <p className="text-xs text-stone-600 leading-relaxed">
             The free platform connecting driven university students with small businesses for real-world project work, references, and growth.
           </p>
         </div>
 
         <div>
-          <h4 className="text-xs font-black uppercase tracking-wider text-amber-300 mb-3.5">
+          <h4 className="text-xs font-black uppercase tracking-wider text-[#0D3D2B] mb-3.5">
             For Students
           </h4>
-          <ul className="space-y-2.5 text-xs text-amber-100/70 font-medium">
+          <ul className="space-y-2.5 text-xs text-stone-600 font-medium">
             <li>
-              <Link href="/projects" className="hover:text-amber-300 transition-colors">
+              <Link href="/projects" className="hover:text-[#0D3D2B] transition-colors">
                 Find Projects
               </Link>
             </li>
             <li>
-              <Link href="/student/dashboard" className="hover:text-amber-300 transition-colors">
+              <Link href="/student/dashboard" className="hover:text-[#0D3D2B] transition-colors">
                 Student Workspace
               </Link>
             </li>
             <li>
-              <Link href="/student/profile" className="hover:text-amber-300 transition-colors">
+              <Link href="/student/profile" className="hover:text-[#0D3D2B] transition-colors">
                 Profile Builder
               </Link>
             </li>
@@ -52,22 +52,22 @@ export function Footer() {
         </div>
 
         <div>
-          <h4 className="text-xs font-black uppercase tracking-wider text-amber-300 mb-3.5">
+          <h4 className="text-xs font-black uppercase tracking-wider text-[#0D3D2B] mb-3.5">
             For Small Businesses
           </h4>
-          <ul className="space-y-2.5 text-xs text-amber-100/70 font-medium">
+          <ul className="space-y-2.5 text-xs text-stone-600 font-medium">
             <li>
-              <Link href="/business/projects/new" className="hover:text-amber-300 transition-colors">
+              <Link href="/business/projects/new" className="hover:text-[#0D3D2B] transition-colors">
                 Post a Project Need
               </Link>
             </li>
             <li>
-              <Link href="/business/dashboard" className="hover:text-amber-300 transition-colors">
+              <Link href="/business/dashboard" className="hover:text-[#0D3D2B] transition-colors">
                 Business Hub
               </Link>
             </li>
             <li>
-              <Link href="/register" className="hover:text-amber-300 transition-colors">
+              <Link href="/register" className="hover:text-[#0D3D2B] transition-colors">
                 Zero-Cost Small Biz Program
               </Link>
             </li>
@@ -75,22 +75,22 @@ export function Footer() {
         </div>
 
         <div>
-          <h4 className="text-xs font-black uppercase tracking-wider text-amber-300 mb-3.5">
+          <h4 className="text-xs font-black uppercase tracking-wider text-[#0D3D2B] mb-3.5">
             About & Community
           </h4>
-          <ul className="space-y-2.5 text-xs text-amber-100/70 font-medium">
+          <ul className="space-y-2.5 text-xs text-stone-600 font-medium">
             <li>
-              <Link href="/about" className="hover:text-amber-300 transition-colors">
+              <Link href="/about" className="hover:text-[#0D3D2B] transition-colors">
                 About Us
               </Link>
             </li>
             <li>
-              <Link href="/creator" className="hover:text-amber-300 transition-colors">
+              <Link href="/creator" className="hover:text-[#0D3D2B] transition-colors">
                 Creator
               </Link>
             </li>
             <li>
-              <Link href="/contact" className="hover:text-amber-300 transition-colors">
+              <Link href="/contact" className="hover:text-[#0D3D2B] transition-colors">
                 Contact Us
               </Link>
             </li>

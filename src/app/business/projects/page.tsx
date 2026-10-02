@@ -14,7 +14,6 @@ import {
   ArrowRight,
   Clock,
   Layers,
-  Sparkles,
   GraduationCap
 } from 'lucide-react';
 
@@ -26,10 +25,10 @@ export default function BusinessProjectsPage() {
   if (!currentUser) {
     return (
       <div className="max-w-md mx-auto py-24 px-4 text-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-amber-100 text-[#7A1C2E] flex items-center justify-center mx-auto">
+        <div className="w-12 h-12 rounded-2xl bg-[#E6F3EC] text-[#0D3D2B] flex items-center justify-center mx-auto">
           <Building className="w-6 h-6" />
         </div>
-        <h2 className="text-2xl font-black text-[#2A151B]">Business Login Required</h2>
+        <h2 className="text-2xl font-black text-[#111C16]">Business Login Required</h2>
         <p className="text-xs text-stone-600">Please log in with your business account to manage your projects.</p>
         <Link href="/login">
           <Button variant="primary">Log In</Button>
@@ -41,10 +40,10 @@ export default function BusinessProjectsPage() {
   if (currentUser.role !== 'business') {
     return (
       <div className="max-w-md mx-auto py-24 px-4 text-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-amber-100 text-[#7A1C2E] flex items-center justify-center mx-auto">
+        <div className="w-12 h-12 rounded-2xl bg-[#E6F3EC] text-[#0D3D2B] flex items-center justify-center mx-auto">
           <GraduationCap className="w-6 h-6" />
         </div>
-        <h2 className="text-2xl font-black text-[#2A151B]">Student Account Detected</h2>
+        <h2 className="text-2xl font-black text-[#111C16]">Student Account Detected</h2>
         <p className="text-xs text-stone-600">You are logged in as a Student. Explore open projects available for application.</p>
         <Link href="/projects">
           <Button variant="primary">Browse Open Projects</Button>
@@ -89,13 +88,13 @@ export default function BusinessProjectsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#F0E4DC]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#E5DFD5]">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-[#7A1C2E] mb-1">
-            <Building className="w-4 h-4 text-[#E59819]" />
+          <div className="flex items-center gap-2 text-xs font-bold text-[#0D3D2B] mb-1">
+            <Building className="w-4 h-4 text-[#16563D]" />
             <span>{currentBusiness?.business_name || 'Business'} Project Center</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#2A151B]">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#111C16]">
             Manage Your Project Needs
           </h1>
           <p className="text-xs sm:text-sm text-stone-500 font-medium">
@@ -105,14 +104,14 @@ export default function BusinessProjectsPage() {
 
         <Link href="/business/projects/new">
           <Button variant="primary" size="md">
-            <PlusCircle className="w-4 h-4 mr-2 text-[#E59819]" />
+            <PlusCircle className="w-4 h-4 mr-2 text-emerald-200" />
             Post New Project
           </Button>
         </Link>
       </div>
 
       {/* Controls: Search & Status Filters */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-3xl p-4 border border-[#F0E4DC] shadow-xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-3xl p-4 border border-[#E5DFD5] shadow-xs">
         {/* Search Bar */}
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -121,7 +120,7 @@ export default function BusinessProjectsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search projects by title, skill, or keyword..."
-            className="w-full text-xs pl-10 pr-4 py-2.5 rounded-2xl border border-stone-200 bg-[#FCF9F6] text-stone-900 outline-none focus:ring-2 focus:ring-[#7A1C2E]"
+            className="w-full text-xs pl-10 pr-4 py-2.5 rounded-2xl border border-stone-200 bg-[#FAF7F2] text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
           />
         </div>
 
@@ -139,8 +138,8 @@ export default function BusinessProjectsPage() {
               onClick={() => setStatusFilter(tab.id)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 statusFilter === tab.id
-                  ? 'bg-[#7A1C2E] text-white shadow-xs'
-                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  ? 'bg-[#0D3D2B] text-white shadow-xs'
+                  : 'bg-[#EFE9DE] text-stone-700 hover:bg-[#E5DFD5]'
               }`}
             >
               {tab.label}
@@ -160,7 +159,7 @@ export default function BusinessProjectsPage() {
             return (
               <div
                 key={project.id}
-                className="bg-white rounded-3xl p-6 border border-[#F0E4DC] shadow-xs hover:border-[#7A1C2E]/40 transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-6"
+                className="bg-white rounded-3xl p-6 border border-[#E5DFD5] shadow-xs hover:border-[#0D3D2B]/40 transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-6"
               >
                 <div className="space-y-3 max-w-3xl">
                   <div className="flex flex-wrap items-center gap-2">
@@ -176,7 +175,7 @@ export default function BusinessProjectsPage() {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-bold text-[#2A151B]">
+                    <h3 className="text-lg font-bold text-[#111C16]">
                       {project.title}
                     </h3>
                     <p className="text-xs text-stone-600 line-clamp-2 mt-1 leading-relaxed">
@@ -187,7 +186,7 @@ export default function BusinessProjectsPage() {
                   {/* Skills & Time Commitment */}
                   <div className="flex flex-wrap items-center gap-4 text-xs text-stone-500 font-medium pt-1">
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-[#E59819]" />
+                      <Clock className="w-3.5 h-3.5 text-[#16563D]" />
                       {project.estimated_hours_per_week} hrs/week • {project.duration_weeks} weeks
                     </span>
                     <span>•</span>
@@ -195,7 +194,7 @@ export default function BusinessProjectsPage() {
                       {(project.skills_required || []).slice(0, 3).map((skill: string, idx: number) => (
                         <span
                           key={idx}
-                          className="px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 text-[10px] font-semibold"
+                          className="px-2 py-0.5 rounded-md bg-[#F4F0E6] text-[#2D3F33] text-[10px] font-semibold"
                         >
                           {skill}
                         </span>
@@ -220,7 +219,7 @@ export default function BusinessProjectsPage() {
                       <Users className="w-4 h-4 mr-1.5" />
                       Applicants ({projectApps.length})
                       {pendingAppsCount > 0 && (
-                        <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#E59819] text-[#2A151B] text-[10px] font-black">
+                        <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#16563D] text-white text-[10px] font-black">
                           {pendingAppsCount} new
                         </span>
                       )}
@@ -229,7 +228,7 @@ export default function BusinessProjectsPage() {
 
                   {workspace ? (
                     <Link href={`/workspace/${workspace.id}`}>
-                      <Button size="sm" variant="yellow">
+                      <Button size="sm" variant="secondary">
                         <Layers className="w-4 h-4 mr-1.5" />
                         Workspace
                         <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -247,11 +246,11 @@ export default function BusinessProjectsPage() {
             );
           })
         ) : (
-          <div className="bg-white rounded-3xl p-12 border border-[#F0E4DC] text-center space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-[#7A1C2E] flex items-center justify-center mx-auto">
-              <Sparkles className="w-6 h-6 text-[#E59819]" />
+          <div className="bg-white rounded-3xl p-12 border border-[#E5DFD5] text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#E6F3EC] text-[#0D3D2B] flex items-center justify-center mx-auto">
+              <Building className="w-6 h-6 text-[#0D3D2B]" />
             </div>
-            <h3 className="text-base font-bold text-[#2A151B]">No projects found</h3>
+            <h3 className="text-base font-bold text-[#111C16]">No projects found</h3>
             <p className="text-xs text-stone-500 max-w-sm mx-auto">
               {statusFilter !== 'all' || searchQuery
                 ? 'Try adjusting your search query or status filter.'
@@ -259,7 +258,7 @@ export default function BusinessProjectsPage() {
             </p>
             <Link href="/business/projects/new">
               <Button size="sm" variant="primary">
-                <PlusCircle className="w-4 h-4 mr-1.5 text-[#E59819]" />
+                <PlusCircle className="w-4 h-4 mr-1.5 text-emerald-200" />
                 Post Project Need
               </Button>
             </Link>

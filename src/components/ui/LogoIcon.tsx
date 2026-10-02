@@ -57,7 +57,7 @@ export function LogoWithText({
 }) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <div className={`${iconSize} rounded-2xl bg-[#7A1C2E] flex items-center justify-center text-white shadow-md shadow-[#7A1C2E]/20 p-2 group-hover:scale-105 transition-transform`}>
+      <div className={`${iconSize} rounded-2xl bg-[#0D3D2B] flex items-center justify-center text-white shadow-md shadow-[#0D3D2B]/20 p-2 group-hover:scale-105 transition-transform`}>
         <LogoIcon className="w-full h-full text-white" />
       </div>
       <div>

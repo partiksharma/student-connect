@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useApp } from '@/lib/store';
@@ -10,43 +10,54 @@ import { Modal } from '@/components/ui/Modal';
 import { formatTimeAgo } from '@/lib/utils';
 import {
   CheckCircle2,
-  Send,
-  Plus,
-  Paperclip,
-  Flag,
   Star,
   Building,
   GraduationCap,
-  Download,
-  AlertTriangle,
   ArrowLeft,
-  FileCheck
+  Award,
+  ExternalLink,
+  Send,
+  Flag,
+  AlertTriangle,
+  MessageSquare,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function ProjectWorkspacePage() {
   const params = useParams();
   const {
     workspaces,
+    projects,
+    students,
+    businesses,
     currentUser,
-    addWorkspaceTask,
-    toggleWorkspaceTask,
+    feedbackList,
+    updateWorkspaceStatus,
     sendWorkspaceMessage,
     flagWorkspaceMessage,
-    addWorkspaceFile,
-    updateWorkspaceStatus,
     submitFeedback,
   } = useApp();
 
   const workspaceId = params?.id as string;
   const workspace = workspaces.find((w) => w.id === workspaceId);
 
-  const [messageInput, setMessageInput] = useState('');
-  const [taskInput, setTaskInput] = useState('');
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(5);
   const [feedbackText, setFeedbackText] = useState('');
+
+  // Chat state
+  const [messageInput, setMessageInput] = useState('');
   const [flagSuccessMsg, setFlagSuccessMsg] = useState<string | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const messages = workspace?.messages || [];
+
+  // Smooth local container scroll to bottom without jumping page
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages.length]);
 
   if (!workspace) {
     return (
@@ -62,41 +73,44 @@ export default function ProjectWorkspacePage() {
     );
   }
 
-  const tasks = workspace.tasks || [];
-  const completedTasksCount = tasks.filter((t) => t.is_completed).length;
-  const taskProgress = tasks.length > 0 ? Math.round((completedTasksCount / tasks.length) * 100) : 0;
-  const messages = workspace.messages || [];
-  const files = workspace.files || [];
+  const proj = projects.find((p) => p.id === workspace.project_id) || workspace.project;
+  const stu = students.find((s) => s.user_id === workspace.student_id) || workspace.student;
+  const biz = businesses.find((b) => b.user_id === workspace.business_id) || workspace.business;
 
   const isStudent = currentUser?.id === workspace.student_id;
+  const isBusiness = currentUser?.id === workspace.business_id || currentUser?.role === 'business';
   const isCompleted = workspace.status === 'completed';
+
+  const clientReview = feedbackList.find(
+    (f) => f.project_id === workspace.project_id && f.recipient_id === workspace.student_id
+  );
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim()) return;
-    sendWorkspaceMessage(workspace.id, messageInput.trim());
+    const content = messageInput.trim();
+    if (!content) return;
     setMessageInput('');
-  };
-
-  const handleAddTask = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!taskInput.trim()) return;
-    addWorkspaceTask(workspace.id, taskInput.trim());
-    setTaskInput('');
-    setIsTaskModalOpen(false);
-  };
-
-  const handleFileUploadMock = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      addWorkspaceFile(workspace.id, file.name, file.size);
-    }
+    sendWorkspaceMessage(workspace.id, content);
+    
+    // Smooth scroll inside chat container only
+    requestAnimationFrame(() => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+    });
   };
 
   const handleFlagMessage = (msgId: string) => {
     flagWorkspaceMessage(msgId);
-    setFlagSuccessMsg('Message flagged for moderator review.');
-    setTimeout(() => setFlagSuccessMsg(null), 3000);
+    setFlagSuccessMsg('Message reported to StudentConnect moderation team.');
+    setTimeout(() => setFlagSuccessMsg(null), 4000);
+  };
+
+  const handleStudentCompleteProject = () => {
+    updateWorkspaceStatus(workspace.id, 'completed');
   };
 
   const handleSubmitFeedback = (e: React.FormEvent) => {
@@ -109,329 +123,287 @@ export default function ProjectWorkspacePage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Top Breadcrumb & Status Progression */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <Link
             href={isStudent ? '/student/dashboard' : '/business/dashboard'}
-            className="inline-flex items-center text-xs font-bold text-stone-500 hover:text-[#7A1C2E] mb-2 transition-colors"
+            className="inline-flex items-center text-xs font-bold text-stone-500 hover:text-[#0D3D2B] mb-2 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-1" />
             Back to Dashboard
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#2A151B]">
-            {workspace.project?.title || 'Project Workspace'}
+          <h1 className="text-2xl sm:text-3xl font-black text-[#111C16]">
+            {proj?.title || workspace.project?.title || 'Project Workspace'}
           </h1>
           <div className="text-xs text-stone-500 flex flex-wrap items-center gap-3 mt-1 font-medium">
-            <span className="flex items-center gap-1 font-bold text-[#7A1C2E]">
-              <Building className="w-3.5 h-3.5 text-[#E59819]" />
-              {workspace.business?.business_name}
+            <span className="flex items-center gap-1 font-bold text-[#0D3D2B]">
+              <Building className="w-3.5 h-3.5 text-[#16563D]" />
+              {biz?.business_name || workspace.business?.business_name || 'Client Partner'}
             </span>
             <span>•</span>
-            <span className="flex items-center gap-1 font-bold text-[#7A1C2E]">
-              <GraduationCap className="w-3.5 h-3.5 text-[#7A1C2E]" />
-              {workspace.student?.full_name} ({workspace.student?.school})
-            </span>
+            <Link
+              href={`/p/${workspace.student_id}`}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E6F3EC] hover:bg-[#D4E8DC] text-[#0D3D2B] border border-[#CDE5D7] font-bold text-xs transition-colors shadow-2xs"
+            >
+              <GraduationCap className="w-3.5 h-3.5 text-[#0D3D2B]" />
+              <span>{stu?.full_name || workspace.student?.full_name || 'Student Builder'} ({stu?.school || workspace.student?.school || 'University'})</span>
+              <ExternalLink className="w-3 h-3 text-stone-400" />
+            </Link>
+            <span>•</span>
+            <Badge
+              variant={
+                isCompleted
+                  ? 'success'
+                  : workspace.status === 'under_review'
+                  ? 'yellow'
+                  : 'primary'
+              }
+              size="sm"
+            >
+              {workspace.status.replace('_', ' ')}
+            </Badge>
           </div>
         </div>
 
-        {/* Project Handshake & Completion Button */}
+        {/* Project Handshake & Completion Actions */}
         <div className="flex items-center gap-3">
           {isCompleted ? (
-            <Badge variant="success" size="md">
-              <CheckCircle2 className="w-4 h-4 mr-1" />
-              Engagement Completed
-            </Badge>
-          ) : (
-            <>
-              {workspace.status === 'in_progress' && (
+            <div className="flex items-center gap-2">
+              <Badge variant="success" size="md">
+                <CheckCircle2 className="w-4 h-4 mr-1" />
+                Project Completed
+              </Badge>
+              {isBusiness && !clientReview && (
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => updateWorkspaceStatus(workspace.id, 'under_review')}
+                  variant="primary"
+                  onClick={() => setIsFeedbackModalOpen(true)}
+                  className="font-bold"
                 >
-                  <FileCheck className="w-4 h-4 mr-1 text-[#E59819]" />
-                  Submit Deliverables for Review
+                  <Star className="w-4 h-4 mr-1 fill-white text-white" />
+                  Leave Student Review
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
+              {isStudent && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={handleStudentCompleteProject}
+                  className="font-bold shadow-md"
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                  Complete Project & Hand Off
                 </Button>
               )}
 
-              <Button
-                size="sm"
-                variant="yellow"
-                onClick={() => setIsFeedbackModalOpen(true)}
-              >
-                <Star className="w-4 h-4 mr-1 fill-amber-700 text-amber-700" />
-                Complete & Leave Review
-              </Button>
+              {isBusiness && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => setIsFeedbackModalOpen(true)}
+                >
+                  <Star className="w-4 h-4 mr-1 fill-white text-white" />
+                  Complete & Leave Review
+                </Button>
+              )}
             </>
           )}
         </div>
       </div>
 
-      {/* Progress Timeline Header Bar */}
-      <div className="bg-white rounded-3xl p-5 border border-[#F0E4DC] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-bold text-stone-700">
-            Milestone Progress:
-          </span>
-          <div className="w-36 bg-amber-100 rounded-full h-3 overflow-hidden">
-            <div
-              className="bg-[#7A1C2E] h-3 rounded-full transition-all duration-300"
-              style={{ width: `${taskProgress}%` }}
-            />
-          </div>
-          <span className="text-xs font-black text-[#7A1C2E]">
-            {taskProgress}% ({completedTasksCount}/{tasks.length})
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs font-bold">
-          <span className="text-stone-400">Status:</span>
-          <Badge
-            variant={
-              isCompleted
-                ? 'success'
-                : workspace.status === 'under_review'
-                ? 'yellow'
-                : 'primary'
-            }
-            size="sm"
-          >
-            {workspace.status.replace('_', ' ')}
-          </Badge>
-        </div>
-      </div>
-
+      {/* Flag toast feedback */}
       {flagSuccessMsg && (
-        <div className="p-3.5 rounded-2xl bg-[#E59819] text-[#2A151B] font-bold text-xs flex items-center gap-2 animate-in fade-in">
-          <Flag className="w-4 h-4" />
+        <div className="p-3 bg-[#FAF3E8] border border-[#ECDAB8] rounded-2xl text-xs text-[#8C6420] font-bold flex items-center gap-2 animate-in fade-in">
+          <ShieldCheck className="w-4 h-4 text-[#16563D]" />
           <span>{flagSuccessMsg}</span>
         </div>
       )}
 
-      {/* Workspace Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Tasks Checklist & Deliverables */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Tasks & Milestones Card */}
-          <div className="bg-white rounded-3xl p-6 border border-[#F0E4DC] shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-[#2A151B] flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#7A1C2E]" />
-                Action Items & Milestones
-              </h3>
-              <button
-                onClick={() => setIsTaskModalOpen(true)}
-                className="text-xs text-[#7A1C2E] hover:underline font-bold flex items-center gap-1 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add Item
-              </button>
+      {/* Completion & Review Notification Banner for Business Client */}
+      {isCompleted && isBusiness && !clientReview && (
+        <div className="bg-[#FAF7F2] text-[#111C16] p-6 rounded-3xl border border-[#E5DFD5] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-[#E6F3EC] text-[#0D3D2B] font-bold flex items-center justify-center shrink-0 shadow-xs">
+              <Award className="w-6 h-6 text-[#0D3D2B]" />
             </div>
-
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  onClick={() => toggleWorkspaceTask(workspace.id, task.id)}
-                  className={`p-3.5 rounded-2xl border flex items-center gap-3 cursor-pointer transition-colors ${
-                    task.is_completed
-                      ? 'bg-amber-50/50 border-amber-100 text-stone-400 line-through'
-                      : 'bg-[#FFFDF9] border-[#F0E4DC] text-stone-800 hover:border-[#7A1C2E]'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={task.is_completed}
-                    onChange={() => {}}
-                    className="rounded text-[#7A1C2E] focus:ring-0 cursor-pointer"
-                  />
-                  <span className="text-xs select-none flex-1 font-medium">{task.title}</span>
-                </div>
-              ))}
-
-              {tasks.length === 0 && (
-                <p className="text-xs text-stone-400 text-center py-4">
-                  No tasks created yet. Add milestones to track deliverables.
-                </p>
-              )}
+            <div>
+              <div className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider text-[#0D3D2B]">
+                <span>Project Work Delivered</span>
+              </div>
+              <h3 className="font-extrabold text-base text-[#111C16]">
+                {workspace.student?.full_name || 'The student'} has completed this project!
+              </h3>
+              <p className="text-xs text-stone-600 font-medium mt-0.5">
+                Please provide an official rating and testimonial for their verified public portfolio.
+              </p>
             </div>
           </div>
+          <Button
+            size="md"
+            variant="primary"
+            onClick={() => setIsFeedbackModalOpen(true)}
+            className="shrink-0 shadow-xs"
+          >
+            <Star className="w-4 h-4 mr-1 fill-white text-white" />
+            Leave Student Review
+          </Button>
+        </div>
+      )}
 
-          {/* Deliverables & Uploaded Files Card */}
-          <div className="bg-white rounded-3xl p-6 border border-[#F0E4DC] shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-[#2A151B] flex items-center gap-2">
-                <Paperclip className="w-4 h-4 text-[#E59819]" />
-                Shared Deliverables & Files
-              </h3>
-              <label className="text-xs text-[#7A1C2E] hover:underline font-bold flex items-center gap-1 cursor-pointer">
-                <Plus className="w-3.5 h-3.5" />
-                Upload File
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileUploadMock}
-                />
-              </label>
+      {clientReview && (
+        <div className="bg-white rounded-3xl p-5 border border-emerald-200 bg-emerald-50/50 shadow-xs flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
-
-            <div className="space-y-2">
-              {files.map((file) => (
-                <div
-                  key={file.id}
-                  className="p-3.5 rounded-2xl bg-[#FFF8F3] border border-[#F0E4DC] flex items-center justify-between gap-3 text-xs"
-                >
-                  <div className="truncate">
-                    <span className="font-bold text-[#2A151B] block truncate">
-                      {file.file_name}
-                    </span>
-                    <span className="text-[10px] text-stone-400 font-medium">
-                      {(file.file_size_bytes / (1024 * 1024)).toFixed(2)} MB • {formatTimeAgo(file.created_at)}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => alert(`Downloading ${file.file_name}`)}
-                    className="p-1.5 rounded-xl text-stone-500 hover:bg-amber-100 transition-colors"
-                  >
-                    <Download className="w-4 h-4 text-[#7A1C2E]" />
-                  </button>
+            <div>
+              <div className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                <span>Verified Client Review Submitted</span>
+                <div className="flex items-center text-amber-500">
+                  {[...Array(clientReview.rating)].map((_, i) => (
+                    <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
+                  ))}
                 </div>
-              ))}
-
-              {files.length === 0 && (
-                <p className="text-xs text-stone-400 text-center py-4">
-                  No files uploaded yet. Upload final deliverables, PDFs, or design decks.
-                </p>
-              )}
+              </div>
+              <p className="text-xs text-stone-700 italic font-medium mt-0.5">
+                &ldquo;{clientReview.testimonial}&rdquo;
+              </p>
             </div>
+          </div>
+          <Link href={`/p/${workspace.student_id}`} target="_blank">
+            <Button size="sm" variant="outline" className="text-xs shrink-0 font-bold">
+              <ExternalLink className="w-3.5 h-3.5 mr-1" />
+              View on Portfolio
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {/* Main Workspace: Direct Project Chat Section */}
+      <div className="bg-white rounded-3xl border border-[#E5DFD5] shadow-xs flex flex-col h-[680px] overflow-hidden">
+        {/* Chat Header */}
+        <div className="p-4 sm:p-5 border-b border-[#E5DFD5] bg-[#FAF7F2] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#0D3D2B] text-white flex items-center justify-center font-bold shadow-xs">
+              <MessageSquare className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-extrabold text-sm text-[#111C16] flex items-center gap-2">
+                <span>Direct Project Chat</span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live
+                </span>
+              </h2>
+              <p className="text-[11px] text-stone-500">
+                {workspace.student?.full_name} & {workspace.business?.business_name}
+              </p>
+            </div>
+          </div>
+          <div className="text-right hidden sm:block">
+            <span className="text-[10px] text-stone-400 font-semibold flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              Moderation Monitored
+            </span>
           </div>
         </div>
 
-        {/* Right Column: Real-time In-Platform Messaging */}
-        <div className="lg:col-span-7">
-          <div className="bg-white rounded-3xl border border-[#F0E4DC] shadow-xs flex flex-col h-[650px] overflow-hidden">
-            {/* Chat Header */}
-            <div className="px-6 py-4 border-b border-[#F0E4DC] flex items-center justify-between bg-[#FFF8F3]">
-              <div>
-                <h3 className="font-black text-sm text-[#2A151B]">
-                  Direct Project Discussion
-                </h3>
-                <p className="text-[11px] text-stone-400 font-medium">
-                  Live in-platform chat between student and business partner.
+        {/* Chat Messages List */}
+        <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-[#FAF7F2]/50 scroll-smooth">
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 text-stone-400">
+              <div className="w-12 h-12 rounded-2xl bg-[#E6F3EC] text-[#0D3D2B] flex items-center justify-center">
+                <MessageSquare className="w-6 h-6" />
+              </div>
+              <div className="max-w-xs">
+                <p className="font-bold text-stone-700 text-xs">No messages yet</p>
+                <p className="text-[11px] text-stone-500 mt-1">
+                  Start the conversation! Align on project details, share links, and coordinate deliverables.
                 </p>
               </div>
-              <Badge variant="yellow" size="sm">
-                Realtime Active
-              </Badge>
             </div>
+          ) : (
+            messages.map((msg) => {
+              const isMyMessage = msg.sender_id === currentUser?.id;
+              const isMsgFlagged = msg.is_flagged;
 
-            {/* Message Stream */}
-            <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-[#FFFDFB]">
-              {messages.map((msg) => {
-                const isMe = msg.sender_id === currentUser?.id;
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
-                  >
-                    <div className="flex items-center gap-1.5 mb-1 text-[10px] text-stone-400 font-medium">
-                      <span className="font-bold text-stone-700">
-                        {msg.sender_name || (isMe ? 'You' : 'Partner')}
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex flex-col ${isMyMessage ? 'items-end' : 'items-start'} space-y-1`}
+                >
+                  <div className="flex items-center gap-2 px-1 text-[10px] text-stone-400">
+                    <span className="font-bold text-stone-700">
+                      {isMyMessage ? 'You' : msg.sender_name || (msg.sender_role === 'business' ? 'Business Partner' : 'Student')}
+                    </span>
+                    {msg.sender_role && (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-[#EFE9DE] text-[#0D3D2B] uppercase">
+                        {msg.sender_role}
                       </span>
-                      <span>•</span>
-                      <span>{formatTimeAgo(msg.created_at)}</span>
-                    </div>
-
-                    <div
-                      className={`relative group max-w-[80%] p-4 rounded-3xl text-xs leading-relaxed ${
-                        isMe
-                          ? 'bg-[#7A1C2E] text-white rounded-br-xs shadow-md shadow-[#7A1C2E]/10'
-                          : 'bg-[#FFF3E8] text-[#2A151B] border border-amber-200 rounded-bl-xs'
-                      }`}
-                    >
-                      {msg.content}
-
-                      {/* Flag Message */}
-                      {!isMe && !msg.is_flagged && (
-                        <button
-                          onClick={() => handleFlagMessage(msg.id)}
-                          className="opacity-0 group-hover:opacity-100 absolute -right-6 top-2 text-stone-400 hover:text-rose-600 transition-opacity p-1"
-                          title="Report inappropriate message"
-                        >
-                          <Flag className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-
-                      {msg.is_flagged && (
-                        <div className="text-[10px] text-amber-600 font-bold mt-1 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" /> Flagged for review
-                        </div>
-                      )}
-                    </div>
+                    )}
+                    <span>•</span>
+                    <span>{formatTimeAgo(msg.created_at)}</span>
                   </div>
-                );
-              })}
-            </div>
 
-            {/* Input Bar */}
-            <form
-              onSubmit={handleSendMessage}
-              className="p-4 border-t border-[#F0E4DC] bg-white flex items-center gap-2"
-            >
-              <input
-                type="text"
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                placeholder="Type a message or project update..."
-                className="flex-1 text-xs p-3 rounded-full border border-stone-200 bg-[#FCF9F6] text-stone-900 outline-none focus:ring-2 focus:ring-[#7A1C2E]"
-              />
-              <Button type="submit" size="md" variant="primary">
-                <Send className="w-4 h-4" />
-              </Button>
-            </form>
-          </div>
+                  <div
+                    className={`relative group max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 text-xs shadow-2xs leading-relaxed ${
+                      isMyMessage
+                        ? 'bg-[#0D3D2B] text-white rounded-br-xs'
+                        : 'bg-white border border-[#E5DFD5] text-stone-800 rounded-bl-xs'
+                    }`}
+                  >
+                    {isMsgFlagged ? (
+                      <div className="flex items-center gap-2 text-emerald-200 text-xs italic">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <span>This message has been flagged for moderation review.</span>
+                      </div>
+                    ) : (
+                      <p className="break-words whitespace-pre-wrap">{msg.content}</p>
+                    )}
+
+                    {!isMyMessage && !isMsgFlagged && (
+                      <button
+                        onClick={() => handleFlagMessage(msg.id)}
+                        className="absolute -right-7 top-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-stone-400 hover:text-[#0D3D2B]"
+                        title="Report message"
+                      >
+                        <Flag className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
-      </div>
 
-      {/* Add Task Modal */}
-      <Modal
-        isOpen={isTaskModalOpen}
-        onClose={() => setIsTaskModalOpen(false)}
-        title="Add Project Action Item"
-        description="Create a milestone or checklist item for this project."
-      >
-        <form onSubmit={handleAddTask} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-stone-800 mb-1">
-              Task Title
-            </label>
-            <input
-              type="text"
-              required
-              value={taskInput}
-              onChange={(e) => setTaskInput(e.target.value)}
-              placeholder="e.g. Deliver 5 Instagram reel storyboard hooks"
-              className="w-full text-xs p-3 rounded-2xl border border-stone-200 bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#7A1C2E]"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsTaskModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" size="sm">
-              Add Task
-            </Button>
-          </div>
+        {/* Chat Input Bar */}
+        <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-[#E5DFD5] bg-white flex items-center gap-2">
+          <input
+            type="text"
+            value={messageInput}
+            onChange={(e) => setMessageInput(e.target.value)}
+            placeholder="Type your message..."
+            className="flex-1 text-xs px-4 py-3 rounded-2xl bg-[#FAF7F2] border border-[#E5DFD5] text-stone-900 placeholder:text-stone-400 outline-none focus:ring-2 focus:ring-[#0D3D2B]/50 focus:border-[#0D3D2B] transition-all"
+          />
+          <Button
+            type="submit"
+            disabled={!messageInput.trim()}
+            size="sm"
+            variant="primary"
+            className="rounded-2xl px-5 py-3 h-auto text-xs font-bold shrink-0 shadow-xs cursor-pointer"
+          >
+            <Send className="w-3.5 h-3.5 mr-1" />
+            Send
+          </Button>
         </form>
-      </Modal>
+      </div>
 
       {/* Complete & Leave Feedback Modal */}
       <Modal
@@ -458,7 +430,7 @@ export default function ProjectWorkspacePage() {
                   <Star
                     className={`w-7 h-7 ${
                       star <= feedbackRating
-                        ? 'text-[#E59819] fill-[#E59819]'
+                        ? 'text-[#C89238] fill-[#C89238]'
                         : 'text-stone-200'
                     }`}
                   />
@@ -477,7 +449,7 @@ export default function ProjectWorkspacePage() {
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               placeholder="Share specific praise on communication, quality of deliverables, and why other partners should work together..."
-              className="w-full text-xs p-3 rounded-2xl border border-stone-200 bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#7A1C2E]"
+              className="w-full text-xs p-3 rounded-2xl border border-stone-200 bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
             />
           </div>
 

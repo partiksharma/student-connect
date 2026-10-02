@@ -16,15 +16,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants = {
       primary:
-        'bg-[#7A1C2E] hover:bg-[#601221] text-white shadow-md shadow-[#7A1C2E]/20 hover:shadow-[#7A1C2E]/30 focus:ring-[#7A1C2E]',
+        'bg-[#0D3D2B] hover:bg-[#08281A] text-white shadow-md shadow-[#0D3D2B]/20 hover:shadow-[#0D3D2B]/30 focus:ring-[#0D3D2B]',
       yellow:
-        'bg-[#E59819] hover:bg-[#CF840E] text-slate-950 shadow-md shadow-amber-500/20 hover:shadow-amber-500/30 focus:ring-amber-500 font-bold',
+        'bg-[#16563D] hover:bg-[#0F3F2C] text-white shadow-md shadow-emerald-900/20 hover:shadow-emerald-900/30 focus:ring-[#16563D] font-bold',
       secondary:
-        'bg-[#FEF3C7] hover:bg-[#FDE68A] text-[#7A1C2E] border border-amber-200 focus:ring-amber-400',
+        'bg-[#E6F3EC] hover:bg-[#D4E8DC] text-[#0D3D2B] border border-[#CDE5D7] focus:ring-[#0D3D2B]',
       outline:
-        'border-2 border-[#7A1C2E] hover:bg-[#7A1C2E] hover:text-white text-[#7A1C2E] bg-transparent focus:ring-[#7A1C2E]',
+        'border-2 border-[#0D3D2B] hover:bg-[#0D3D2B] hover:text-white text-[#0D3D2B] bg-transparent focus:ring-[#0D3D2B]',
       ghost:
-        'hover:bg-[#7A1C2E]/10 text-[#7A1C2E] focus:ring-[#7A1C2E]',
+        'hover:bg-[#0D3D2B]/10 text-[#0D3D2B] focus:ring-[#0D3D2B]',
       danger:
         'bg-rose-700 hover:bg-rose-800 text-white shadow-sm shadow-rose-700/30 focus:ring-rose-600',
       success:

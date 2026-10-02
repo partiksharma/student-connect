@@ -6,7 +6,7 @@ import { ProjectCard } from '@/components/ui/ProjectCard';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Project } from '@/lib/types/database';
-import { Search, Filter, Sparkles, Check, Briefcase } from 'lucide-react';
+import { Search, Filter, Check, Briefcase } from 'lucide-react';
 
 export default function ProjectsMarketplacePage() {
   const { projects, applyToProject, currentUser } = useApp();
@@ -51,7 +51,7 @@ export default function ProjectsMarketplacePage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Header Banner */}
       <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-black text-[#2A151B] tracking-tight">
+        <h1 className="text-3xl sm:text-4xl font-black text-[#111C16] tracking-tight">
           Project Marketplace
         </h1>
         <p className="text-xs text-stone-500 mt-1 max-w-2xl font-medium">
@@ -60,7 +60,7 @@ export default function ProjectsMarketplacePage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-3xl border border-[#F0E4DC] shadow-xs mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="bg-white p-4 rounded-3xl border border-[#E5DFD5] shadow-xs mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
         {/* Search input */}
         <div className="relative w-full md:w-96">
           <Search className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -69,20 +69,20 @@ export default function ProjectsMarketplacePage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by skill, business, or keyword..."
-            className="w-full text-xs pl-11 pr-4 py-3 rounded-full border border-stone-200 bg-[#FCF9F6] text-stone-900 outline-none focus:ring-2 focus:ring-[#7A1C2E]"
+            className="w-full text-xs pl-11 pr-4 py-3 rounded-full border border-stone-200 bg-[#FAF7F2] text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
           />
         </div>
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <div className="flex items-center gap-1.5 text-xs text-stone-500 font-bold">
-            <Filter className="w-3.5 h-3.5 text-[#7A1C2E]" />
+            <Filter className="w-3.5 h-3.5 text-[#0D3D2B]" />
             <span>Category:</span>
           </div>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="text-xs px-4 py-2.5 rounded-full border border-stone-200 bg-[#FCF9F6] text-stone-800 font-semibold outline-none focus:ring-2 focus:ring-[#7A1C2E]"
+            className="text-xs px-4 py-2.5 rounded-full border border-stone-200 bg-[#FAF7F2] text-stone-800 font-semibold outline-none focus:ring-2 focus:ring-[#0D3D2B]"
           >
             <option value="all">All Categories</option>
             <option value="marketing">Marketing & Growth</option>
@@ -114,8 +114,8 @@ export default function ProjectsMarketplacePage() {
 
       {/* Empty State */}
       {filtered.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-3xl border border-[#F0E4DC] space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-[#7A1C2E] flex items-center justify-center mx-auto">
+        <div className="text-center py-16 bg-white rounded-3xl border border-[#E5DFD5] space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#E6F3EC] text-[#0D3D2B] flex items-center justify-center mx-auto">
             <Briefcase className="w-6 h-6" />
           </div>
           <h3 className="text-base font-bold text-stone-900">No projects found</h3>
@@ -165,12 +165,12 @@ export default function ProjectsMarketplacePage() {
                   value={pitchNote}
                   onChange={(e) => setPitchNote(e.target.value)}
                   placeholder="Introduce yourself, highlight relevant tools or experience..."
-                  className="w-full text-xs p-3 rounded-2xl border border-stone-200 bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#7A1C2E]"
+                  className="w-full text-xs p-3 rounded-2xl border border-stone-200 bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
                 />
               </div>
 
-              <div className="p-3 rounded-2xl bg-[#FFF8F3] text-xs text-stone-600 border border-[#F0E4DC]">
-                <div className="font-bold text-[#7A1C2E]">
+              <div className="p-3 rounded-2xl bg-[#F4F9F6] text-xs text-stone-600 border border-[#D6EADB]">
+                <div className="font-bold text-[#0D3D2B]">
                   Commitment: {selectedProjectForApply.estimated_hours_per_week} hrs/week • {selectedProjectForApply.duration_weeks} weeks
                 </div>
               </div>

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import {
   GraduationCap,
-  Sparkles,
+  Award,
   ExternalLink,
   Plus,
   X,
@@ -54,10 +54,10 @@ export default function StudentProfilePage() {
       {/* Header with Public Preview Link */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#111C16]">
             Student Profile & Portfolio
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-stone-500 mt-1 font-medium">
             Manage your public presentation, skills, and weekly project availability.
           </p>
         </div>
@@ -74,15 +74,15 @@ export default function StudentProfilePage() {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Basic Information Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-indigo-500" />
+        <div className="bg-white rounded-3xl p-8 border border-[#E5DFD5] shadow-xs space-y-5">
+          <h2 className="text-base font-bold text-[#111C16] flex items-center gap-2">
+            <GraduationCap className="w-5 h-5 text-[#0D3D2B]" />
             Education & Bio
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 mb-1">
                 Full Name
               </label>
               <input
@@ -90,12 +90,12 @@ export default function StudentProfilePage() {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full text-xs p-3 rounded-xl border border-[#E5DFD5] bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 mb-1">
                 University / College
               </label>
               <input
@@ -103,24 +103,24 @@ export default function StudentProfilePage() {
                 required
                 value={school}
                 onChange={(e) => setSchool(e.target.value)}
-                className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full text-xs p-3 rounded-xl border border-[#E5DFD5] bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 mb-1">
                 Expected Graduation Year
               </label>
               <input
                 type="number"
                 value={gradYear}
                 onChange={(e) => setGradYear(parseInt(e.target.value))}
-                className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full text-xs p-3 rounded-xl border border-[#E5DFD5] bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 mb-1">
                 Available Time (Hours / Week)
               </label>
               <input
@@ -129,13 +129,13 @@ export default function StudentProfilePage() {
                 max={20}
                 value={hours}
                 onChange={(e) => setHours(parseInt(e.target.value))}
-                className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full text-xs p-3 rounded-xl border border-[#E5DFD5] bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-stone-700 mb-1">
               Short Bio & Background
             </label>
             <textarea
@@ -143,12 +143,12 @@ export default function StudentProfilePage() {
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Tell small business owners about your major, interests, and what kind of real-world projects you are eager to tackle..."
-              className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full text-xs p-3 rounded-xl border border-[#E5DFD5] bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-stone-700 mb-1">
               Portfolio / GitHub / LinkedIn Link
             </label>
             <input
@@ -156,18 +156,18 @@ export default function StudentProfilePage() {
               value={portfolioUrl}
               onChange={(e) => setPortfolioUrl(e.target.value)}
               placeholder="https://..."
-              className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full text-xs p-3 rounded-xl border border-[#E5DFD5] bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
             />
           </div>
         </div>
 
         {/* Skills Tag Editor */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-500" />
+        <div className="bg-white rounded-3xl p-8 border border-[#E5DFD5] shadow-xs space-y-4">
+          <h2 className="text-base font-bold text-[#111C16] flex items-center gap-2">
+            <Award className="w-5 h-5 text-[#0D3D2B]" />
             Skills & Competencies
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-stone-500 font-medium">
             Add tags for relevant skills (e.g. Next.js, Canva, Local SEO, Content Writing, Figma).
           </p>
 
@@ -175,13 +175,13 @@ export default function StudentProfilePage() {
             {skills.map((skill) => (
               <span
                 key={skill}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-medium"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#F4F0E6] text-[#1E2E25] border border-[#E5DFD5] text-xs font-bold shadow-2xs"
               >
                 {skill}
                 <button
                   type="button"
                   onClick={() => handleRemoveSkill(skill)}
-                  className="hover:text-rose-500 transition-colors"
+                  className="hover:text-rose-600 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -201,9 +201,9 @@ export default function StudentProfilePage() {
                 }
               }}
               placeholder="e.g. Instagram Reels, Figma, Python..."
-              className="flex-1 text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 text-xs p-2.5 rounded-xl border border-[#E5DFD5] bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
             />
-            <Button type="button" size="sm" variant="secondary" onClick={handleAddSkill}>
+            <Button type="button" size="sm" variant="primary" onClick={handleAddSkill}>
               <Plus className="w-4 h-4 mr-1" />
               Add
             </Button>
@@ -213,7 +213,7 @@ export default function StudentProfilePage() {
         {/* Save Button */}
         <div className="flex items-center justify-between pt-2">
           {isSaved && (
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0D3D2B]">
               <Check className="w-4 h-4" />
               Profile updated successfully!
             </div>

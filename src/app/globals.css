@@ -1,17 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FCF9F6;
-  --foreground: #2A151B;
-  --maroon-primary: #7A1C2E;
-  --maroon-dark: #58111F;
-  --maroon-light: #9B283E;
-  --yellow-accent: #E59819;
-  --yellow-gold: #F59E0B;
-  --yellow-light: #FEF3C7;
-  --yellow-cream: #FFFBEB;
+  --background: #F7F4EE;
+  --foreground: #111C16;
+  --forest-primary: #0D3D2B;
+  --forest-dark: #07261A;
+  --forest-light: #16563D;
+  --forest-emerald: #1F7352;
+  --mint-accent: #34D399;
+  --mint-light: #E6F3EC;
+  --mint-cream: #F0F7F2;
+  --sand-warm: #EFE9DE;
+  --sand-light: #FAF7F2;
+  --gold-accent: #C89238;
   --card-bg: #FFFFFF;
-  --border-warm: #F2E7DF;
+  --border-warm: #E5DFD5;
 }
 
 @theme inline {
@@ -29,22 +32,22 @@ body {
 }
 
 ::selection {
-  background: #7A1C2E;
+  background: #0D3D2B;
   color: #FFFFFF;
 }
 
-/* Custom scrollbar in warm theme */
+/* Custom scrollbar in warm forest theme */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #F7EFE8;
+  background: #EFEAE2;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D9BCAE;
+  background: #C8C0B2;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #7A1C2E;
+  background: #0D3D2B;
 }

@@ -20,7 +20,7 @@ export function ProjectCard({ project, onApply, showApplyButton = true }: Projec
   const isCompleted = project.status === 'completed';
 
   return (
-    <div className="group relative bg-white rounded-3xl border border-[#F0E4DC] hover:border-[#7A1C2E]/40 p-7 transition-all duration-300 hover:shadow-xl hover:shadow-amber-900/5 flex flex-col justify-between">
+    <div className="group relative bg-white rounded-3xl border border-[#E5DFD5] hover:border-[#0D3D2B]/50 p-7 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-950/5 flex flex-col justify-between">
       <div>
         {/* Header Badges */}
         <div className="flex items-center justify-between gap-2 mb-4">
@@ -55,12 +55,12 @@ export function ProjectCard({ project, onApply, showApplyButton = true }: Projec
             <img
               src={project.business.logo_url}
               alt={project.business.business_name}
-              className="w-6 h-6 rounded-full object-cover border border-amber-200"
+              className="w-6 h-6 rounded-full object-cover border border-[#E5DFD5]"
             />
           ) : (
-            <Building className="w-4 h-4 text-[#7A1C2E]" />
+            <Building className="w-4 h-4 text-[#0D3D2B]" />
           )}
-          <span className="text-xs font-bold text-[#7A1C2E]">
+          <span className="text-xs font-bold text-[#0D3D2B]">
             {project.business?.business_name || 'Verified Small Business'}
           </span>
           {project.business?.location && (
@@ -69,8 +69,8 @@ export function ProjectCard({ project, onApply, showApplyButton = true }: Projec
         </div>
 
         {/* Project Title */}
-        <Link href={`/projects/${project.id}`} className="block group-hover:text-[#7A1C2E] transition-colors">
-          <h3 className="font-extrabold text-base text-[#2A151B] leading-snug mb-2 line-clamp-2">
+        <Link href={`/projects/${project.id}`} className="block group-hover:text-[#0D3D2B] transition-colors">
+          <h3 className="font-extrabold text-base text-[#111C16] leading-snug mb-2 line-clamp-2">
             {project.title}
           </h3>
         </Link>
@@ -82,8 +82,8 @@ export function ProjectCard({ project, onApply, showApplyButton = true }: Projec
 
         {/* Deliverables snippet */}
         {project.deliverables_description && (
-          <div className="mb-4 p-3 rounded-2xl bg-[#FFFDF9] border border-[#F2E7DF] text-[11px] text-stone-700">
-            <span className="font-bold text-[#7A1C2E] block mb-1">Key Deliverables:</span>
+          <div className="mb-4 p-3 rounded-2xl bg-[#FAF8F3] border border-[#E5DFD5] text-[11px] text-stone-700">
+            <span className="font-bold text-[#0D3D2B] block mb-1">Key Deliverables:</span>
             <p className="line-clamp-2 whitespace-pre-line">{project.deliverables_description}</p>
           </div>
         )}
@@ -93,13 +93,13 @@ export function ProjectCard({ project, onApply, showApplyButton = true }: Projec
           {project.skills_required.slice(0, 4).map((skill, idx) => (
             <span
               key={idx}
-              className="text-[11px] px-2.5 py-1 rounded-full bg-[#FAF5F0] text-stone-700 font-semibold border border-amber-100"
+              className="text-[11px] px-2.5 py-1 rounded-full bg-[#F4F0E6] text-[#2D3F33] font-semibold border border-[#E5DFD5]"
             >
               {skill}
             </span>
           ))}
           {project.skills_required.length > 4 && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FAF5F0] text-stone-400 font-medium">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#F4F0E6] text-stone-500 font-medium">
               +{project.skills_required.length - 4} more
             </span>
           )}
@@ -107,21 +107,21 @@ export function ProjectCard({ project, onApply, showApplyButton = true }: Projec
       </div>
 
       {/* Footer & Commitment Meta */}
-      <div className="pt-4 border-t border-[#F2E7DF] flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3 text-xs text-stone-500 font-medium">
-          <div className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-amber-600" />
-            <span>~{project.estimated_hours_per_week} hrs/wk</span>
+      <div className="pt-4 border-t border-[#E5DFD5] flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 text-xs text-stone-600 font-medium">
+          <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            <Clock className="w-3.5 h-3.5 text-[#16563D] shrink-0" />
+            <span className="whitespace-nowrap">~{project.estimated_hours_per_week} hrs/wk</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5 text-amber-600" />
-            <span>{project.duration_weeks} wks</span>
+          <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            <Calendar className="w-3.5 h-3.5 text-[#16563D] shrink-0" />
+            <span className="whitespace-nowrap">{project.duration_weeks} wks</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {showApplyButton && project.status === 'open' && onApply && (
-            <Button size="sm" variant="yellow" onClick={() => onApply(project)}>
+          {showApplyButton && (project.status === 'open' || project.status === 'pending_approval') && onApply && (
+            <Button size="sm" variant="primary" onClick={() => onApply(project)}>
               Apply Now
             </Button>
           )}

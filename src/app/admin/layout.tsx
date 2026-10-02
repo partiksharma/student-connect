@@ -112,7 +112,7 @@ export default function AdminLayout({
       <aside className="w-full lg:w-72 bg-slate-900 border-r border-slate-800 p-6 flex flex-col shrink-0">
         {/* Brand Header */}
         <div className="flex items-center gap-3 pb-6 border-b border-slate-800">
-          <div className="w-10 h-10 rounded-2xl bg-[#7A1C2E] flex items-center justify-center text-white p-2 shadow-md">
+          <div className="w-10 h-10 rounded-2xl bg-[#0D3D2B] flex items-center justify-center text-white p-2 shadow-md">
             <LogoIcon className="w-full h-full text-white" />
           </div>
           <div>

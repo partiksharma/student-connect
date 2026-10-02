@@ -10,14 +10,12 @@ import { formatDate } from '@/lib/utils';
 import {
   Users,
   GraduationCap,
-  Sparkles,
   ArrowLeft,
   CheckCircle2,
   XCircle,
   ExternalLink,
   Clock,
-  ArrowRight,
-  MessageSquare
+  ArrowRight
 } from 'lucide-react';
 
 export default function BusinessApplicantsReviewPage() {
@@ -34,7 +32,7 @@ export default function BusinessApplicantsReviewPage() {
   if (!project) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Project Not Found</h2>
+        <h2 className="text-xl font-bold text-stone-900">Project Not Found</h2>
         <Link href="/business/dashboard">
           <Button variant="outline" size="sm">
             Back to Dashboard
@@ -66,32 +64,32 @@ export default function BusinessApplicantsReviewPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <Link
         href="/business/dashboard"
-        className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+        className="inline-flex items-center text-xs font-bold text-[#0D3D2B] hover:text-[#08281A] transition-colors"
       >
         <ArrowLeft className="w-4 h-4 mr-1" />
         Back to Dashboard
       </Link>
 
       {/* Header */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+      <div className="bg-white rounded-3xl p-8 border border-[#E5DFD5] shadow-xs space-y-2">
         <div className="flex items-center gap-2">
           <Badge variant="primary" size="sm">
             Applicant Review
           </Badge>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-stone-400 font-medium">
             {projectApps.length} student {projectApps.length === 1 ? 'applicant' : 'applicants'}
           </span>
         </div>
-        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
+        <h1 className="text-2xl font-black text-[#111C16]">
           {project.title}
         </h1>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-stone-500 font-medium">
           Review student pitch proposals. Accepting a student will instantiate your private collaboration workspace.
         </p>
       </div>
 
       {notification && (
-        <div className="p-4 rounded-2xl bg-emerald-500 text-white font-semibold text-xs flex items-center gap-2 animate-in fade-in">
+        <div className="p-4 rounded-2xl bg-emerald-600 text-white font-semibold text-xs flex items-center gap-2 animate-in fade-in">
           <CheckCircle2 className="w-4 h-4" />
           <span>{notification}</span>
         </div>
@@ -109,10 +107,10 @@ export default function BusinessApplicantsReviewPage() {
             return (
               <div
                 key={app.id}
-                className={`bg-white dark:bg-slate-900 rounded-3xl p-8 border transition-all duration-200 space-y-6 ${
+                className={`bg-white rounded-3xl p-8 border transition-all duration-200 space-y-6 ${
                   isAccepted
-                    ? 'border-emerald-500/50 dark:border-emerald-500/50 shadow-md shadow-emerald-500/5'
-                    : 'border-slate-200 dark:border-slate-800'
+                    ? 'border-emerald-600/50 shadow-md shadow-emerald-950/5'
+                    : 'border-[#E5DFD5]'
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -122,17 +120,17 @@ export default function BusinessApplicantsReviewPage() {
                       <img
                         src={student.avatar_url}
                         alt={student.full_name}
-                        className="w-14 h-14 rounded-2xl object-cover border border-slate-200 dark:border-slate-700"
+                        className="w-14 h-14 rounded-2xl object-cover border border-[#E5DFD5]"
                       />
                     ) : (
-                      <div className="w-14 h-14 rounded-2xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center font-bold text-lg">
+                      <div className="w-14 h-14 rounded-2xl bg-[#E6F3EC] text-[#0D3D2B] flex items-center justify-center font-bold text-lg">
                         {student?.full_name?.charAt(0) || 'S'}
                       </div>
                     )}
 
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                        <h3 className="font-bold text-base text-[#111C16]">
                           {student?.full_name || 'Applicant'}
                         </h3>
                         {isAccepted && (
@@ -153,13 +151,16 @@ export default function BusinessApplicantsReviewPage() {
                         )}
                       </div>
 
-                      <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2 mt-0.5">
+                      <div className="text-xs text-stone-500 flex flex-wrap items-center gap-2 mt-0.5 font-medium">
                         <span className="flex items-center gap-1">
-                          <GraduationCap className="w-3.5 h-3.5 text-slate-400" />
+                          <GraduationCap className="w-3.5 h-3.5 text-[#0D3D2B]" />
                           {student?.school} • Class of {student?.graduation_year}
                         </span>
                         <span>•</span>
-                        <span>Available ~{student?.availability_hours_per_week} hrs/wk</span>
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                          <Clock className="w-3.5 h-3.5 text-[#0D3D2B] shrink-0" />
+                          Available ~{student?.availability_hours_per_week} hrs/wk
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -178,11 +179,11 @@ export default function BusinessApplicantsReviewPage() {
                 </div>
 
                 {/* Pitch Note Box */}
-                <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                <div className="p-5 rounded-2xl bg-[#FAF7F2] border border-[#E5DFD5] space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#0D3D2B]">
                     Student Proposal / Pitch:
                   </span>
-                  <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 italic leading-relaxed">
+                  <p className="text-xs sm:text-sm text-stone-700 italic leading-relaxed font-medium">
                     &ldquo;{app.pitch_note}&rdquo;
                   </p>
                 </div>
@@ -193,7 +194,7 @@ export default function BusinessApplicantsReviewPage() {
                     {student.skills.map((skill, idx) => (
                       <span
                         key={idx}
-                        className="text-[11px] px-2.5 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-medium"
+                        className="text-[11px] px-2.5 py-0.5 rounded-lg bg-[#F4F0E6] text-[#1E2E25] font-semibold border border-[#E5DFD5]"
                       >
                         {skill}
                       </span>
@@ -203,7 +204,7 @@ export default function BusinessApplicantsReviewPage() {
 
                 {/* Decision Actions */}
                 {isPending && (
-                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+                  <div className="pt-4 border-t border-stone-100 flex items-center justify-end gap-3">
                     <Button
                       size="sm"
                       variant="ghost"
@@ -215,7 +216,7 @@ export default function BusinessApplicantsReviewPage() {
                     </Button>
                     <Button
                       size="sm"
-                      variant="success"
+                      variant="primary"
                       onClick={() => handleAccept(app.id, student?.full_name || 'Student')}
                     >
                       <CheckCircle2 className="w-4 h-4 mr-1" />
@@ -227,12 +228,12 @@ export default function BusinessApplicantsReviewPage() {
             );
           })
         ) : (
-          <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3">
-            <Users className="w-10 h-10 text-slate-400 mx-auto" />
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+          <div className="text-center py-16 bg-white rounded-3xl border border-[#E5DFD5] space-y-3">
+            <Users className="w-10 h-10 text-stone-400 mx-auto" />
+            <h3 className="text-base font-bold text-stone-900">
               No applicants yet
             </h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            <p className="text-xs text-stone-500 max-w-sm mx-auto">
               As students discover your posting in the marketplace, their proposals will appear here.
             </p>
           </div>

@@ -15,7 +15,6 @@ import {
   MapPin,
   Globe,
   ArrowLeft,
-  Sparkles,
   CheckCircle2,
   Check,
   Share2,
@@ -36,8 +35,8 @@ export default function ProjectDetailPage() {
   if (!project) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Project Not Found</h2>
-        <p className="text-xs text-slate-500">The project listing you requested does not exist or has been removed.</p>
+        <h2 className="text-xl font-bold text-stone-900">Project Not Found</h2>
+        <p className="text-xs text-stone-500">The project listing you requested does not exist or has been removed.</p>
         <Link href="/projects">
           <Button variant="outline" size="sm">
             <ArrowLeft className="w-4 h-4 mr-1.5" />
@@ -69,7 +68,7 @@ export default function ProjectDetailPage() {
       {/* Back Button */}
       <Link
         href="/projects"
-        className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 mb-6 transition-colors"
+        className="inline-flex items-center text-xs font-semibold text-stone-600 hover:text-[#0D3D2B] mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4 mr-1" />
         Back to all projects
@@ -79,42 +78,42 @@ export default function ProjectDetailPage() {
         {/* Main Project Details (Left 2 columns) */}
         <div className="lg:col-span-2 space-y-8">
           {/* Header Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="bg-white rounded-3xl p-8 border border-[#E5DFD5] shadow-xs space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className={`text-xs px-3 py-1 rounded-full font-medium border ${getCategoryBadgeClass(project.category)}`}>
+              <span className={`text-xs px-3 py-1 rounded-full font-bold border ${getCategoryBadgeClass(project.category)}`}>
                 {formatCategoryName(project.category)}
               </span>
               <div className="flex items-center gap-2">
-                <Badge variant={project.status === 'open' ? 'success' : 'primary'} size="sm">
+                <Badge variant={project.status === 'open' ? 'yellow' : 'primary'} size="sm">
                   {project.status === 'open' ? 'Accepting Applications' : project.status.replace('_', ' ')}
                 </Badge>
-                <span className="text-xs text-slate-400">Posted {formatDate(project.created_at)}</span>
+                <span className="text-xs text-stone-400 font-medium">Posted {formatDate(project.created_at)}</span>
               </div>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white leading-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111C16] leading-tight">
               {project.title}
             </h1>
 
             {/* Business Quick Bar */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
+            <div className="pt-4 border-t border-[#E5DFD5] flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 {project.business?.logo_url ? (
                   <img
                     src={project.business.logo_url}
                     alt={project.business.business_name}
-                    className="w-10 h-10 rounded-2xl object-cover border border-slate-200 dark:border-slate-700"
+                    className="w-10 h-10 rounded-2xl object-cover border border-[#E5DFD5]"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-2xl bg-[#E6F3EC] text-[#0D3D2B] flex items-center justify-center font-bold">
                     <Building className="w-5 h-5" />
                   </div>
                 )}
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-sm font-bold text-stone-900">
                     {project.business?.business_name || 'Small Business Partner'}
                   </h3>
-                  <div className="text-xs text-slate-500 flex items-center gap-2">
+                  <div className="text-xs text-stone-500 flex items-center gap-2 font-medium">
                     <span>{project.business?.industry}</span>
                     {project.business?.location && <span>• {project.business.location}</span>}
                   </div>
@@ -126,7 +125,7 @@ export default function ProjectDetailPage() {
                   href={project.business.website_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                  className="text-xs text-[#0D3D2B] hover:underline flex items-center gap-1 font-semibold"
                 >
                   <Globe className="w-3.5 h-3.5" />
                   Website
@@ -136,24 +135,24 @@ export default function ProjectDetailPage() {
           </div>
 
           {/* Project Scope & Objectives */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xs space-y-6">
+          <div className="bg-white rounded-3xl p-8 border border-[#E5DFD5] shadow-xs space-y-6">
             <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white mb-2">
+              <h2 className="text-base font-bold text-stone-900 mb-2">
                 Project Overview & Goal
               </h2>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+              <p className="text-xs sm:text-sm text-stone-700 leading-relaxed whitespace-pre-line font-medium">
                 {project.description}
               </p>
             </div>
 
             {/* Expected Deliverables */}
             {project.deliverables_description && (
-              <div className="p-5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 space-y-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4" />
+              <div className="p-5 rounded-2xl bg-[#FAF8F3] border border-[#E5DFD5] space-y-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#0D3D2B] flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#16563D]" />
                   Tangible Deliverables
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
+                <p className="text-xs sm:text-sm text-stone-800 leading-relaxed whitespace-pre-line font-medium">
                   {project.deliverables_description}
                 </p>
               </div>
@@ -161,14 +160,14 @@ export default function ProjectDetailPage() {
 
             {/* Required Skills */}
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-3">
                 Skills & Tools Desired
               </h3>
               <div className="flex flex-wrap gap-2">
                 {project.skills_required.map((skill, idx) => (
                   <span
                     key={idx}
-                    className="text-xs px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
+                    className="text-xs px-3 py-1 rounded-xl bg-[#F4F0E6] text-[#1E2E25] border border-[#E5DFD5] font-semibold"
                   >
                     {skill}
                   </span>
@@ -181,36 +180,36 @@ export default function ProjectDetailPage() {
         {/* Action Sidebar (Right Column) */}
         <div className="space-y-6">
           {/* Apply Box */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Engagement Details</h3>
+          <div className="bg-white rounded-3xl p-6 border border-[#E5DFD5] shadow-xs space-y-5">
+            <h3 className="text-sm font-bold text-stone-900">Engagement Details</h3>
 
             <div className="space-y-3 text-xs">
-              <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500 flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-slate-400" />
+              <div className="flex items-center justify-between py-2 border-b border-[#E5DFD5]">
+                <span className="text-stone-600 flex items-center gap-1.5 font-medium whitespace-nowrap">
+                  <Clock className="w-4 h-4 text-[#16563D] shrink-0" />
                   Estimated Time:
                 </span>
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  ~{project.estimated_hours_per_week} hrs/week
+                <span className="font-bold text-[#0D3D2B] whitespace-nowrap">
+                  ~{project.estimated_hours_per_week} hrs/wk
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500 flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-slate-400" />
+              <div className="flex items-center justify-between py-2 border-b border-[#E5DFD5]">
+                <span className="text-stone-600 flex items-center gap-1.5 font-medium whitespace-nowrap">
+                  <Calendar className="w-4 h-4 text-[#16563D] shrink-0" />
                   Duration:
                 </span>
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  {project.duration_weeks} weeks
+                <span className="font-bold text-[#0D3D2B] whitespace-nowrap">
+                  {project.duration_weeks} wks
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <div className="flex items-center justify-between py-2 border-b border-[#E5DFD5]">
+                <span className="text-stone-600 flex items-center gap-1.5 font-medium">
+                  <ShieldCheck className="w-4 h-4 text-[#16563D] shrink-0" />
                   Cost:
                 </span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="font-extrabold text-[#0D3D2B]">
                   $0 Free (Experience & Portfolio)
                 </span>
               </div>
@@ -226,28 +225,28 @@ export default function ProjectDetailPage() {
                 Apply to this Project
               </Button>
             ) : (
-              <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-center text-xs text-slate-500 font-medium">
+              <div className="p-3 rounded-xl bg-[#FAF3E8] text-[#0D3D2B] text-center text-xs font-bold border border-[#E5DFD5]">
                 This project is currently {project.status.replace('_', ' ')}.
               </div>
             )}
 
-            <p className="text-[11px] text-slate-400 text-center leading-normal">
+            <p className="text-[11px] text-stone-400 text-center leading-normal font-medium">
               Students and businesses enter into a mutual experiential agreement. No payment is exchanged.
             </p>
           </div>
 
           {/* About the Business Sidebar Box */}
           {project.business && (
-            <div className="bg-slate-50 dark:bg-slate-900/60 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <div className="bg-[#FAF7F2] rounded-3xl p-6 border border-[#E5DFD5] space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#0D3D2B]">
                 About the Business
               </h4>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              <p className="text-xs text-stone-700 leading-relaxed font-medium">
                 {project.business.description || 'Verified local business partnering with StudentConnect to offer real work experiences.'}
               </p>
-              <div className="pt-2 text-xs text-slate-500 space-y-1">
-                <div><strong>Team size:</strong> {project.business.business_size} people</div>
-                <div><strong>Location:</strong> {project.business.location}</div>
+              <div className="pt-2 text-xs text-stone-600 space-y-1 font-medium">
+                <div><strong className="text-[#0D3D2B]">Industry:</strong> {project.business.industry}</div>
+                <div><strong className="text-[#0D3D2B]">Location:</strong> {project.business.location}</div>
               </div>
             </div>
           )}
@@ -263,18 +262,18 @@ export default function ProjectDetailPage() {
       >
         {applySuccess ? (
           <div className="py-8 text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center mx-auto">
-              <Check className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-full bg-[#E6F3EC] text-[#0D3D2B] flex items-center justify-center mx-auto border border-[#CDE5D7]">
+              <Check className="w-6 h-6 text-[#0D3D2B]" />
             </div>
-            <h4 className="font-bold text-lg text-slate-900 dark:text-white">Application Submitted!</h4>
-            <p className="text-xs text-slate-500">
+            <h4 className="font-bold text-lg text-stone-900">Application Submitted!</h4>
+            <p className="text-xs text-stone-500">
               The business owner will review your application. You can track status in your Applications tab.
             </p>
           </div>
         ) : (
           <form onSubmit={handleApply} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 mb-1">
                 Your pitch & proposal
               </label>
               <textarea
@@ -283,7 +282,7 @@ export default function ProjectDetailPage() {
                 value={pitchNote}
                 onChange={(e) => setPitchNote(e.target.value)}
                 placeholder="Explain why you are excited about this project, your relevant coursework or past projects, and what approach you will take..."
-                className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full text-xs p-3 rounded-xl border border-[#E5DFD5] bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
               />
             </div>
 
