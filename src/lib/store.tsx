@@ -190,10 +190,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Background polling every 10 seconds for cross-browser / multi-device instant sync
+    // Background polling every 4 seconds for cross-browser / multi-device instant sync
     const syncInterval = setInterval(() => {
       refreshData();
-    }, 10000);
+    }, 4000);
 
     // Restore user ID from sessionStorage first (per-tab), then localStorage
     try {
@@ -208,12 +208,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setIsInitialized(true);
 
-    // Supabase Realtime channel subscription
+    // Supabase Realtime channel subscription (both Broadcast & Postgres Changes)
     let realtimeChannel: any = null;
     try {
       const supabase = createClient();
       realtimeChannel = supabase
-        .channel('public:db_changes')
+        .channel('studentconnect_global_sync')
+        .on('broadcast', { event: 'ACCOUNT_REGISTERED' }, () => {
+          refreshData();
+        })
+        .on('broadcast', { event: 'USER_STATUS_CHANGE' }, () => {
+          refreshData();
+        })
+        .on('broadcast', { event: 'PROJECT_STATUS_CHANGE' }, () => {
+          refreshData();
+        })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
           refreshData();
         })
@@ -622,6 +631,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.warn('Could not sync registration to Supabase:', err);
     }
 
+    // Global Supabase Realtime broadcast for instant cross-device admin notification
+    try {
+      const supabase = createClient();
+      const channel = supabase.channel('studentconnect_global_sync');
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channel.send({
+            type: 'broadcast',
+            event: 'ACCOUNT_REGISTERED',
+            payload: { id: newId, role: 'student', email }
+          }).then(() => {
+            try { supabase.removeChannel(channel); } catch {}
+          });
+        }
+      });
+    } catch {}
+
     // Instant sync broadcast across windows / browser tabs
     try {
       if (typeof BroadcastChannel !== 'undefined') {
@@ -703,6 +729,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.warn('Could not sync business registration to Supabase:', err);
     }
+
+    // Global Supabase Realtime broadcast for instant cross-device admin notification
+    try {
+      const supabase = createClient();
+      const channel = supabase.channel('studentconnect_global_sync');
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channel.send({
+            type: 'broadcast',
+            event: 'ACCOUNT_REGISTERED',
+            payload: { id: newId, role: 'business', email }
+          }).then(() => {
+            try { supabase.removeChannel(channel); } catch {}
+          });
+        }
+      });
+    } catch {}
 
     // Instant sync broadcast across windows / browser tabs
     try {
@@ -1117,6 +1160,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const supabase = createClient();
       supabase.from('profiles').update({ status: 'approved', updated_at: new Date().toISOString() }).eq('id', userId).then(() => {});
+      const channel = supabase.channel('studentconnect_global_sync');
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channel.send({
+            type: 'broadcast',
+            event: 'USER_STATUS_CHANGE',
+            payload: { id: userId, status: 'approved' }
+          }).then(() => {
+            try { supabase.removeChannel(channel); } catch {}
+          });
+        }
+      });
     } catch {}
     try {
       if (typeof BroadcastChannel !== 'undefined') {
@@ -1137,6 +1192,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       supabase.from('profiles').delete().eq('id', userId).then(() => {});
       supabase.from('student_profiles').delete().eq('user_id', userId).then(() => {});
       supabase.from('business_profiles').delete().eq('user_id', userId).then(() => {});
+      const channel = supabase.channel('studentconnect_global_sync');
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channel.send({
+            type: 'broadcast',
+            event: 'USER_STATUS_CHANGE',
+            payload: { id: userId, status: 'rejected' }
+          }).then(() => {
+            try { supabase.removeChannel(channel); } catch {}
+          });
+        }
+      });
     } catch {}
     try {
       if (typeof BroadcastChannel !== 'undefined') {
