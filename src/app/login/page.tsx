@@ -194,11 +194,18 @@ export default function LoginPage() {
           )}
         </Button>
 
-        <div className="text-center text-xs text-stone-500 pt-2 font-medium">
-          Don&apos;t have an account yet?{' '}
-          <Link href="/register" className="text-[#0D3D2B] font-black hover:underline">
-            Register Free
-          </Link>
+        <div className="text-center text-xs text-stone-500 pt-2 font-medium space-y-2">
+          <div>
+            Don&apos;t have an account yet?{' '}
+            <Link href="/register" className="text-[#0D3D2B] font-black hover:underline">
+              Register Free
+            </Link>
+          </div>
+          <div className="pt-2 border-t border-stone-100">
+            <Link href="/admin/login" className="text-stone-400 hover:text-amber-700 text-[11px] font-semibold transition-colors">
+              Staff & Administrator Sign In →
+            </Link>
+          </div>
         </div>
       </form>
     </div>

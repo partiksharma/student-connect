@@ -94,7 +94,25 @@ export function Footer() {
                 Contact Us
               </Link>
             </li>
+            <li>
+              <Link href="/admin/login" className="text-stone-400 hover:text-amber-700 transition-colors flex items-center gap-1 text-[11px] pt-1">
+                <span>🛡️</span> Staff / Admin Login
+              </Link>
+            </li>
           </ul>
+        </div>
+      </div>
+      
+      <div className="max-w-7xl mx-auto mt-10 pt-6 border-t border-[#E5DFD5] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
+        <p>© {new Date().getFullYear()} StudentConnect Platform. All rights reserved.</p>
+        <div className="flex items-center gap-4">
+          <Link href="/admin/login" className="hover:text-[#0D3D2B] transition-colors text-[11px]">
+            Admin Portal
+          </Link>
+          <span>•</span>
+          <Link href="/contact" className="hover:text-[#0D3D2B] transition-colors text-[11px]">
+            Support
+          </Link>
         </div>
       </div>
     </footer>
