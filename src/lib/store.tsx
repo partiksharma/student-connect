@@ -121,7 +121,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return Array.from(map.values());
   };
 
-  // Load from LocalStorage on mount and listen to cross-tab storage events
+    // Load from LocalStorage on mount and listen to cross-tab storage events
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -140,6 +140,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {
       console.warn('Failed to load state from local storage');
     }
+
+    // Also fetch remote profiles and projects from Supabase if connected
+    const loadRemoteData = async () => {
+      try {
+        const supabase = createClient();
+        const { data: dbProfiles } = await supabase.from('profiles').select('*');
+        if (dbProfiles && dbProfiles.length > 0) {
+          setProfiles((prev) => mergeById(prev, dbProfiles as Profile[], 'id'));
+        }
+
+        const { data: dbStudents } = await supabase.from('student_profiles').select('*');
+        if (dbStudents && dbStudents.length > 0) {
+          setStudents((prev) => mergeById(prev, dbStudents as StudentProfile[], 'user_id'));
+        }
+
+        const { data: dbBiz } = await supabase.from('business_profiles').select('*');
+        if (dbBiz && dbBiz.length > 0) {
+          setBusinesses((prev) => mergeById(prev, dbBiz as BusinessProfile[], 'user_id'));
+        }
+
+        const { data: dbProjects } = await supabase.from('projects').select('*');
+        if (dbProjects && dbProjects.length > 0) {
+          setProjects((prev) => mergeById(prev, dbProjects as Project[], 'id'));
+        }
+      } catch (err) {
+        console.warn('Could not sync remote Supabase records on mount:', err);
+      }
+    };
+    loadRemoteData();
 
     // Restore user ID from sessionStorage first (per-tab), then localStorage
     try {
@@ -1042,7 +1071,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const approveUser = (userId: string) => {
-    setProfiles((prev) => prev.map((p) => (p.id === userId ? { ...p, status: 'approved' } : p)));
+    setProfiles((prev) => prev.map((p) => (p.id === userId ? { ...p, status: 'approved', updated_at: new Date().toISOString() } : p)));
+    try {
+      const supabase = createClient();
+      supabase.from('profiles').update({ status: 'approved', updated_at: new Date().toISOString() }).eq('id', userId).then(() => {});
+    } catch {}
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('studentconnect_chat_channel');
@@ -1058,6 +1091,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setBusinesses((prev) => prev.filter((b) => b.user_id !== userId));
     setProjects((prev) => prev.filter((p) => p.business_id !== userId));
     try {
+      const supabase = createClient();
+      supabase.from('profiles').delete().eq('id', userId).then(() => {});
+      supabase.from('student_profiles').delete().eq('user_id', userId).then(() => {});
+      supabase.from('business_profiles').delete().eq('user_id', userId).then(() => {});
+    } catch {}
+    try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('studentconnect_chat_channel');
         bc.postMessage({ type: 'SYNC_STATE' });
@@ -1069,6 +1108,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const approveProject = (projectId: string) => {
     setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, status: 'open', updated_at: new Date().toISOString() } : p)));
     try {
+      const supabase = createClient();
+      supabase.from('projects').update({ status: 'open', updated_at: new Date().toISOString() }).eq('id', projectId).then(() => {});
+    } catch {}
+    try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('studentconnect_chat_channel');
         bc.postMessage({ type: 'SYNC_STATE' });
@@ -1079,6 +1122,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const rejectProject = (projectId: string) => {
     setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, status: 'rejected', updated_at: new Date().toISOString() } : p)));
+    try {
+      const supabase = createClient();
+      supabase.from('projects').update({ status: 'rejected', updated_at: new Date().toISOString() }).eq('id', projectId).then(() => {});
+    } catch {}
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('studentconnect_chat_channel');
