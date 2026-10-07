@@ -37,12 +37,27 @@ function AdminApprovalsContent() {
     approveUser,
     rejectUser,
     approveProject,
-    rejectProject
+    rejectProject,
+    refreshData
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<TabType>('all_pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshData();
+    setTimeout(() => {
+      setIsRefreshing(false);
+      showNotice('Sync completed: Database records updated.');
+    }, 600);
+  };
 
   useEffect(() => {
     if (urlTab && ['all_pending', 'students', 'businesses', 'approved_projects', 'rejected_projects'].includes(urlTab)) {
@@ -150,24 +165,38 @@ function AdminApprovalsContent() {
           </p>
         </div>
 
-        {/* Search & Filter Bar */}
-        <div className="relative w-full md:w-72">
-          <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search email, name, ID..."
-            className="w-full bg-[#07261A] text-xs text-white pl-10 pr-4 py-2.5 rounded-2xl border border-[#16563D] outline-none focus:ring-2 focus:ring-amber-400"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white text-xs"
-            >
-              ✕
-            </button>
-          )}
+        {/* Actions: Sync & Search */}
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="text-xs font-bold border-[#16563D] bg-[#07261A] text-[#A7F3D0] hover:bg-[#0D3D2B] hover:text-white shrink-0"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${isRefreshing ? 'animate-spin text-amber-400' : 'text-[#34D399]'}`} />
+            <span>{isRefreshing ? 'Syncing...' : 'Sync Cloud DB'}</span>
+          </Button>
+
+          {/* Search & Filter Bar */}
+          <div className="relative w-full md:w-64">
+            <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search email, name, ID..."
+              className="w-full bg-[#07261A] text-xs text-white pl-10 pr-4 py-2.5 rounded-2xl border border-[#16563D] outline-none focus:ring-2 focus:ring-amber-400"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

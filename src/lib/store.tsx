@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { createClient } from './supabase/client';
 import {
   Profile,
@@ -50,10 +50,11 @@ interface AppContextType {
   reports: Report[];
   notifications: AppNotification[];
   markNotificationAsRead: (id: string) => void;
+  refreshData: () => Promise<void>;
 
   // Mutations
-  registerStudent: (email: string, fullName: string, school: string, gradYear: number, skills: string[], hours: number, bio: string, portfolioUrls: string[]) => string;
-  registerBusiness: (email: string, businessName: string, industry: string, size: string, location: string, description: string, websiteUrl?: string) => string;
+  registerStudent: (email: string, fullName: string, school: string, gradYear: number, skills: string[], hours: number, bio: string, portfolioUrls: string[]) => Promise<string>;
+  registerBusiness: (email: string, businessName: string, industry: string, size: string, location: string, description: string, websiteUrl?: string) => Promise<string>;
   
   createProject: (projectData: Omit<Project, 'id' | 'business_id' | 'status' | 'created_at' | 'updated_at'>) => Project;
   updateProjectStatus: (projectId: string, status: ProjectStatus) => void;
@@ -121,7 +122,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return Array.from(map.values());
   };
 
-    // Load from LocalStorage on mount and listen to cross-tab storage events
+  // Load state from Supabase Cloud DB
+  const refreshData = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const [
+        { data: dbProfiles },
+        { data: dbStudents },
+        { data: dbBiz },
+        { data: dbProjects }
+      ] = await Promise.all([
+        supabase.from('profiles').select('*'),
+        supabase.from('student_profiles').select('*'),
+        supabase.from('business_profiles').select('*'),
+        supabase.from('projects').select('*')
+      ]);
+
+      if (dbProfiles && dbProfiles.length > 0) {
+        setProfiles((prev) => mergeById(prev, dbProfiles as Profile[], 'id'));
+      }
+      if (dbStudents && dbStudents.length > 0) {
+        setStudents((prev) => mergeById(prev, dbStudents as StudentProfile[], 'user_id'));
+      }
+      if (dbBiz && dbBiz.length > 0) {
+        setBusinesses((prev) => mergeById(prev, dbBiz as BusinessProfile[], 'user_id'));
+      }
+      if (dbProjects && dbProjects.length > 0) {
+        setProjects((prev) => mergeById(prev, dbProjects as Project[], 'id'));
+      }
+    } catch (err) {
+      console.warn('Could not sync remote Supabase records:', err);
+    }
+  }, []);
+
+  // Load from LocalStorage on mount and listen to cross-tab storage events
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -141,34 +175,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.warn('Failed to load state from local storage');
     }
 
-    // Also fetch remote profiles and projects from Supabase if connected
-    const loadRemoteData = async () => {
-      try {
-        const supabase = createClient();
-        const { data: dbProfiles } = await supabase.from('profiles').select('*');
-        if (dbProfiles && dbProfiles.length > 0) {
-          setProfiles((prev) => mergeById(prev, dbProfiles as Profile[], 'id'));
-        }
+    // Initial cloud load
+    refreshData();
 
-        const { data: dbStudents } = await supabase.from('student_profiles').select('*');
-        if (dbStudents && dbStudents.length > 0) {
-          setStudents((prev) => mergeById(prev, dbStudents as StudentProfile[], 'user_id'));
-        }
-
-        const { data: dbBiz } = await supabase.from('business_profiles').select('*');
-        if (dbBiz && dbBiz.length > 0) {
-          setBusinesses((prev) => mergeById(prev, dbBiz as BusinessProfile[], 'user_id'));
-        }
-
-        const { data: dbProjects } = await supabase.from('projects').select('*');
-        if (dbProjects && dbProjects.length > 0) {
-          setProjects((prev) => mergeById(prev, dbProjects as Project[], 'id'));
-        }
-      } catch (err) {
-        console.warn('Could not sync remote Supabase records on mount:', err);
+    // Auto sync when tab refocuses or becomes visible
+    const handleFocus = () => {
+      refreshData();
+    };
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshData();
       }
     };
-    loadRemoteData();
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Background polling every 10 seconds for cross-browser / multi-device instant sync
+    const syncInterval = setInterval(() => {
+      refreshData();
+    }, 10000);
 
     // Restore user ID from sessionStorage first (per-tab), then localStorage
     try {
@@ -182,6 +207,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {}
 
     setIsInitialized(true);
+
+    // Supabase Realtime channel subscription
+    let realtimeChannel: any = null;
+    try {
+      const supabase = createClient();
+      realtimeChannel = supabase
+        .channel('public:db_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+          refreshData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'student_profiles' }, () => {
+          refreshData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'business_profiles' }, () => {
+          refreshData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+          refreshData();
+        })
+        .subscribe();
+    } catch {}
 
     // Cross-tab real-time sync for chat, profiles, and state updates
     const handleStorageChange = (e: StorageEvent) => {
@@ -263,16 +309,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               prev.map((ws) => (ws.id === data.workspaceId ? { ...ws, status: data.status } : ws))
             );
           } else if (data?.type === 'SYNC_STATE') {
-            try {
-              const saved = localStorage.getItem(STORAGE_KEY);
-              if (saved) {
-                const parsed = JSON.parse(saved);
-                if (parsed.profiles) setProfiles(parsed.profiles);
-                if (parsed.students) setStudents(parsed.students);
-                if (parsed.businesses) setBusinesses(parsed.businesses);
-                if (parsed.projects) setProjects(parsed.projects);
-              }
-            } catch {}
+            refreshData();
           }
         };
       }
@@ -280,6 +317,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(syncInterval);
+      if (realtimeChannel) {
+        try {
+          const supabase = createClient();
+          supabase.removeChannel(realtimeChannel);
+        } catch {}
+      }
       if (bc) bc.close();
     };
   }, []);
@@ -503,7 +549,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const registerStudent = (
+  const registerStudent = async (
     email: string,
     fullName: string,
     school: string,
@@ -512,7 +558,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     hours: number,
     bio: string,
     portfolioUrls: string[]
-  ) => {
+  ): Promise<string> => {
     const newId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `b0eebc99-9c0b-4ef8-bb6d-6bb9bd38${Math.floor(Math.random() * 8900 + 1000)}`;
 
     const newProfile: Profile = {
@@ -539,21 +585,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updated_at: new Date().toISOString(),
     };
 
-    setProfiles((prev) => [...prev, newProfile]);
-    setStudents((prev) => [...prev, newStudent]);
+    setProfiles((prev) => [...prev.filter((p) => p.id !== newId), newProfile]);
+    setStudents((prev) => [...prev.filter((s) => s.user_id !== newId), newStudent]);
     setCurrentUserId(newId);
 
-    // Save DIRECTLY to Supabase Database Tables
+    // Save DIRECTLY to Supabase Database Tables with await
     try {
       const supabase = createClient();
       console.log('Writing student registration to Supabase database...', newId, email);
 
-      supabase.from('profiles').insert([newProfile]).then(({ data, error }) => {
-        if (error) console.error('Supabase profile insert error:', error);
-        else console.log('Supabase profile inserted successfully:', data);
-      });
+      const profileRes = await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+      if (profileRes.error) console.error('Supabase profile insert error:', profileRes.error);
+      else console.log('Supabase profile saved successfully');
 
-      supabase.from('student_profiles').insert([{
+      const stuRes = await supabase.from('student_profiles').upsert([{
         user_id: newStudent.user_id,
         full_name: newStudent.full_name,
         school: newStudent.school,
@@ -564,10 +609,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         portfolio_urls: newStudent.portfolio_urls,
         avatar_url: newStudent.avatar_url,
         is_public: newStudent.is_public
-      }]).then(({ data, error }) => {
-        if (error) console.error('Supabase student_profile insert error:', error);
-        else console.log('Supabase student_profile inserted successfully:', data);
-      });
+      }], { onConflict: 'user_id' });
+      if (stuRes.error) console.error('Supabase student_profile insert error:', stuRes.error);
+      else console.log('Supabase student profile saved successfully');
 
       // Background auth sign-up (optional)
       supabase.auth.signUp({
@@ -592,7 +636,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return newId;
   };
 
-  const registerBusiness = (
+  const registerBusiness = async (
     email: string,
     businessName: string,
     industry: string,
@@ -600,7 +644,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     location: string,
     description: string,
     websiteUrl?: string
-  ) => {
+  ): Promise<string> => {
     const newId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `c0eebc99-9c0b-4ef8-bb6d-6bb9bd38${Math.floor(Math.random() * 8900 + 1000)}`;
 
     const newProfile: Profile = {
@@ -625,21 +669,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updated_at: new Date().toISOString(),
     };
 
-    setProfiles((prev) => [...prev, newProfile]);
-    setBusinesses((prev) => [...prev, newBusiness]);
+    setProfiles((prev) => [...prev.filter((p) => p.id !== newId), newProfile]);
+    setBusinesses((prev) => [...prev.filter((b) => b.user_id !== newId), newBusiness]);
     setCurrentUserId(newId);
 
-    // Save DIRECTLY to Supabase Database Tables
+    // Save DIRECTLY to Supabase Database Tables with await
     try {
       const supabase = createClient();
       console.log('Writing business registration to Supabase database...', newId, email);
 
-      supabase.from('profiles').insert([newProfile]).then(({ data, error }) => {
-        if (error) console.error('Supabase profile insert error:', error);
-        else console.log('Supabase business profile inserted successfully:', data);
-      });
+      const profileRes = await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+      if (profileRes.error) console.error('Supabase profile insert error:', profileRes.error);
+      else console.log('Supabase business profile saved successfully');
 
-      supabase.from('business_profiles').insert([{
+      const bizRes = await supabase.from('business_profiles').upsert([{
         user_id: newBusiness.user_id,
         business_name: newBusiness.business_name,
         industry: newBusiness.industry,
@@ -648,10 +691,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         description: newBusiness.description,
         website_url: newBusiness.website_url,
         logo_url: newBusiness.logo_url
-      }]).then(({ data, error }) => {
-        if (error) console.error('Supabase business_profile insert error:', error);
-        else console.log('Supabase business_profile inserted successfully:', data);
-      });
+      }], { onConflict: 'user_id' });
+      if (bizRes.error) console.error('Supabase business_profile insert error:', bizRes.error);
+      else console.log('Supabase business profile saved successfully');
 
       // Background auth sign-up (optional)
       supabase.auth.signUp({
@@ -1244,6 +1286,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         reports,
         notifications,
         markNotificationAsRead,
+        refreshData,
         registerStudent,
         registerBusiness,
         createProject,

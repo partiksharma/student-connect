@@ -12,11 +12,25 @@ import {
   Briefcase,
   ArrowRight,
   CheckCircle2,
-  Clock
+  Clock,
+  RefreshCw
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
-  const { currentUser, profiles, projects, workspaces, reports } = useApp();
+  const { currentUser, profiles, projects, workspaces, reports, refreshData } = useApp();
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  React.useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshData();
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 600);
+  };
 
   if (!currentUser || currentUser.role !== 'admin') {
     return (
@@ -57,13 +71,23 @@ export default function AdminDashboardPage() {
           <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-medium">
             Maintain high quality and trust across StudentConnect. Review signups, inspect new project scopes, and resolve disputes.
           </p>
-          <div className="pt-2 flex flex-wrap gap-3">
+          <div className="pt-2 flex flex-wrap items-center gap-3">
             <Link href="/admin/approvals">
               <Button size="sm" variant="yellow" className="font-extrabold">
                 Open Approval Queue ({pendingStudents.length + pendingBusinesses.length})
                 <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </Button>
             </Link>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className="text-xs font-bold"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${isRefreshing ? 'animate-spin text-emerald-600' : 'text-stone-500'}`} />
+              <span>{isRefreshing ? 'Syncing...' : 'Sync Database'}</span>
+            </Button>
           </div>
         </div>
       </div>

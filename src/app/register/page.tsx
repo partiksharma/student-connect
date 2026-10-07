@@ -50,22 +50,23 @@ function RegisterForm() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    if (role === 'student') {
-      const skillsArray = skills.split(',').map((s) => s.trim()).filter(Boolean);
-      const portfolioArray = portfolioUrl ? [portfolioUrl] : [];
-      registerStudent(email, fullName, school, gradYear, skillsArray, hours, bio, portfolioArray);
-      setTimeout(() => {
+    try {
+      if (role === 'student') {
+        const skillsArray = skills.split(',').map((s) => s.trim()).filter(Boolean);
+        const portfolioArray = portfolioUrl ? [portfolioUrl] : [];
+        await registerStudent(email, fullName, school, gradYear, skillsArray, hours, bio, portfolioArray);
         router.push('/student/dashboard');
-      }, 1000);
-    } else {
-      registerBusiness(email, businessName, industry, businessSize, location, description, websiteUrl);
-      setTimeout(() => {
+      } else {
+        await registerBusiness(email, businessName, industry, businessSize, location, description, websiteUrl);
         router.push('/business/dashboard');
-      }, 1000);
+      }
+    } catch (err) {
+      console.error('Registration error:', err);
+      setIsSubmitting(false);
     }
   };
 
