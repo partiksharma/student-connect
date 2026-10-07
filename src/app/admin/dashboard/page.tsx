@@ -60,7 +60,7 @@ export default function AdminDashboardPage() {
           <div className="pt-2 flex flex-wrap gap-3">
             <Link href="/admin/approvals">
               <Button size="sm" variant="yellow" className="font-extrabold">
-                Open Approval Queue ({pendingStudents.length + pendingBusinesses.length + pendingProjects.length})
+                Open Approval Queue ({pendingStudents.length + pendingBusinesses.length})
                 <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </Button>
             </Link>
@@ -111,7 +111,7 @@ export default function AdminDashboardPage() {
             {projects.length}
           </div>
           <span className="text-[11px] text-[#6EE7B7] font-medium">
-            +{pendingProjects.length} pending moderation
+            Active on marketplace
           </span>
         </div>
 
@@ -139,11 +139,11 @@ export default function AdminDashboardPage() {
               Pending Moderation Queues
             </h3>
             <span className="px-3 py-1 rounded-full bg-[#16563D] text-white text-xs font-black shadow-xs">
-              {pendingStudents.length + pendingBusinesses.length + pendingProjects.length} Action Items
+              {pendingStudents.length + pendingBusinesses.length} Action Items
             </span>
           </div>
           <p className="text-xs text-[#A7F3D0]/80 font-medium leading-relaxed">
-            Quality control queue for new student registrations, small business verification, and project postings.
+            Quality control queue for new student registrations and small business verification.
           </p>
           <div className="space-y-2 text-xs">
             <Link
@@ -169,19 +169,6 @@ export default function AdminDashboardPage() {
               </div>
               <span className={`font-bold ${pendingBusinesses.length > 0 ? 'text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full' : 'text-[#34D399]'}`}>
                 {pendingBusinesses.length} pending →
-              </span>
-            </Link>
-
-            <Link
-              href="/admin/approvals?tab=pending_projects"
-              className="p-3.5 rounded-2xl bg-[#0D3D2B]/60 hover:bg-[#0D3D2B] border border-[#16563D] flex items-center justify-between transition-all group"
-            >
-              <div className="flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-[#34D399]" />
-                <span className="text-emerald-100 font-semibold group-hover:text-white">Project Postings</span>
-              </div>
-              <span className={`font-bold ${pendingProjects.length > 0 ? 'text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full' : 'text-[#34D399]'}`}>
-                {pendingProjects.length} pending →
               </span>
             </Link>
           </div>
