@@ -36,9 +36,9 @@ export default function AdminLayout({
 
   const isAuthorized = currentUser && currentUser.role === 'admin';
 
-  const pendingStudents = profiles.filter((p) => p.role === 'student' && p.status === 'pending_approval').length;
-  const pendingBusinesses = profiles.filter((p) => p.role === 'business' && p.status === 'pending_approval').length;
-  const pendingProjects = projects.filter((p) => p.status === 'pending_approval').length;
+  const pendingStudents = profiles.filter((p) => p.role === 'student' && (p.status === 'pending_approval' || (p.status as string) === 'pending')).length;
+  const pendingBusinesses = profiles.filter((p) => p.role === 'business' && (p.status === 'pending_approval' || (p.status as string) === 'pending')).length;
+  const pendingProjects = projects.filter((p) => p.status === 'pending_approval' || (p.status as string) === 'pending').length;
   const totalApprovalsPending = pendingStudents + pendingBusinesses + pendingProjects;
   const pendingReportsCount = reports.filter((r) => r.status === 'pending').length;
 

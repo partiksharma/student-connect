@@ -18,6 +18,7 @@ import {
   WorkspaceFile,
   AppNotification
 } from './types/database';
+import { generateUUID } from './utils';
 import {
   INITIAL_PROFILES,
   INITIAL_STUDENTS,
@@ -76,6 +77,7 @@ interface AppContextType {
   // Admin Moderation Actions
   approveUser: (userId: string) => void;
   rejectUser: (userId: string) => void;
+  resetUserToPending: (userId: string) => void;
   approveProject: (projectId: string) => void;
   rejectProject: (projectId: string) => void;
   resolveReport: (reportId: string, action: 'resolved' | 'dismissed') => void;
@@ -640,7 +642,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     bio: string,
     portfolioUrls: string[]
   ): Promise<string> => {
-    const newId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `b0eebc99-9c0b-4ef8-bb6d-6bb9bd38${Math.floor(Math.random() * 8900 + 1000)}`;
+    const newId = generateUUID();
 
     const newProfile: Profile = {
       id: newId,
@@ -759,7 +761,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     description: string,
     websiteUrl?: string
   ): Promise<string> => {
-    const newId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `c0eebc99-9c0b-4ef8-bb6d-6bb9bd38${Math.floor(Math.random() * 8900 + 1000)}`;
+    const newId = generateUUID();
 
     const newProfile: Profile = {
       id: newId,
@@ -1346,6 +1348,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   };
 
+  const resetUserToPending = (userId: string) => {
+    setProfiles((prev) => prev.map((p) => (p.id === userId ? { ...p, status: 'pending_approval', updated_at: new Date().toISOString() } : p)));
+
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const updated = (parsed.profiles || []).map((p: any) => p.id === userId ? { ...p, status: 'pending_approval', updated_at: new Date().toISOString() } : p);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, profiles: updated }));
+        }
+      } catch {}
+    }
+
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('studentconnect_chat_channel');
+        bc.postMessage({ type: 'USER_STATUS_CHANGE', userId, status: 'pending_approval' });
+        setTimeout(() => { try { bc.close(); } catch {} }, 500);
+      }
+    } catch {}
+
+    try {
+      const supabase = createClient();
+      supabase.from('profiles').update({ status: 'pending_approval', updated_at: new Date().toISOString() }).eq('id', userId).then(() => {});
+      const channel = supabase.channel('studentconnect_global_sync');
+      channel.send({
+        type: 'broadcast',
+        event: 'USER_STATUS_CHANGE',
+        payload: { id: userId, status: 'pending_approval' }
+      }).catch(() => {});
+    } catch {}
+  };
+
   const approveProject = (projectId: string) => {
     setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, status: 'open', updated_at: new Date().toISOString() } : p)));
 
@@ -1539,6 +1575,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         submitFeedback,
         approveUser,
         rejectUser,
+        resetUserToPending,
         approveProject,
         rejectProject,
         resolveReport,

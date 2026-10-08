@@ -36,6 +36,7 @@ function AdminApprovalsContent() {
     projects,
     approveUser,
     rejectUser,
+    resetUserToPending,
     approveProject,
     rejectProject,
     refreshData
@@ -78,7 +79,7 @@ function AdminApprovalsContent() {
 
   // Dedicated project lists by exact status
   const pendingProjects = projects.filter((p) =>
-    p.status === 'pending_approval' &&
+    (p.status === 'pending_approval' || (p.status as string) === 'pending') &&
     (!q || p.title.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || (p.business?.business_name && p.business.business_name.toLowerCase().includes(q)))
   );
   const approvedProjects = projects.filter((p) => 
@@ -105,10 +106,10 @@ function AdminApprovalsContent() {
     return p.email.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || biz?.business_name?.toLowerCase().includes(q) || biz?.industry?.toLowerCase().includes(q);
   });
 
-  const pendingStudentProfiles = studentProfilesList.filter((p) => p.status === 'pending_approval');
+  const pendingStudentProfiles = studentProfilesList.filter((p) => p.status === 'pending_approval' || (p.status as string) === 'pending');
   const approvedStudentProfiles = studentProfilesList.filter((p) => p.status === 'approved');
 
-  const pendingBusinessProfiles = businessProfilesList.filter((p) => p.status === 'pending_approval');
+  const pendingBusinessProfiles = businessProfilesList.filter((p) => p.status === 'pending_approval' || (p.status as string) === 'pending');
   const approvedBusinessProfiles = businessProfilesList.filter((p) => p.status === 'approved');
 
   const totalPendingAll = pendingStudentProfiles.length + pendingBusinessProfiles.length + pendingProjects.length;
@@ -131,6 +132,11 @@ function AdminApprovalsContent() {
   const handleApproveUser = (userId: string, email: string) => {
     approveUser(userId);
     showNotice(`Account "${email}" approved successfully! Access granted.`);
+  };
+
+  const handleResetUserToPending = (userId: string, email: string) => {
+    resetUserToPending(userId);
+    showNotice(`Account "${email}" moved back to Pending Approvals queue.`);
   };
 
   return (
@@ -973,11 +979,20 @@ function AdminApprovalsContent() {
                         <Button
                           size="sm"
                           variant="ghost"
+                          className="text-amber-300 hover:text-amber-100 hover:bg-amber-900/40 text-xs font-bold"
+                          onClick={() => handleResetUserToPending(p.id, p.email)}
+                        >
+                          <Clock className="w-3.5 h-3.5 mr-1 text-amber-400" />
+                          Set to Pending
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40 text-xs font-bold"
                           onClick={() => handleRejectUser(p.id, p.email)}
                         >
                           <X className="w-4 h-4 mr-1" />
-                          Revoke / Reject
+                          Reject
                         </Button>
                         <div className="px-3 py-1.5 rounded-xl bg-[#0D3D2B] border border-[#16563D] text-[#34D399] text-xs font-bold flex items-center gap-1.5">
                           <Check className="w-3.5 h-3.5" />
@@ -1138,11 +1153,20 @@ function AdminApprovalsContent() {
                         <Button
                           size="sm"
                           variant="ghost"
+                          className="text-amber-300 hover:text-amber-100 hover:bg-amber-900/40 text-xs font-bold"
+                          onClick={() => handleResetUserToPending(p.id, p.email)}
+                        >
+                          <Clock className="w-3.5 h-3.5 mr-1 text-amber-400" />
+                          Set to Pending
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40 text-xs font-bold"
                           onClick={() => handleRejectUser(p.id, p.email)}
                         >
                           <X className="w-4 h-4 mr-1" />
-                          Revoke / Reject
+                          Reject
                         </Button>
                         <div className="px-3 py-1.5 rounded-xl bg-[#0D3D2B] border border-[#16563D] text-[#34D399] text-xs font-bold flex items-center gap-1.5">
                           <Check className="w-3.5 h-3.5" />

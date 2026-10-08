@@ -51,9 +51,9 @@ export default function AdminDashboardPage() {
     );
   }
 
-  const pendingStudents = profiles.filter((p) => p.role === 'student' && p.status === 'pending_approval');
-  const pendingBusinesses = profiles.filter((p) => p.role === 'business' && p.status === 'pending_approval');
-  const pendingProjects = projects.filter((p) => p.status === 'pending_approval');
+  const pendingStudents = profiles.filter((p) => p.role === 'student' && (p.status === 'pending_approval' || (p.status as string) === 'pending'));
+  const pendingBusinesses = profiles.filter((p) => p.role === 'business' && (p.status === 'pending_approval' || (p.status as string) === 'pending'));
+  const pendingProjects = projects.filter((p) => p.status === 'pending_approval' || (p.status as string) === 'pending');
   const pendingReports = reports.filter((r) => r.status === 'pending');
 
   const approvedStudents = profiles.filter((p) => p.role === 'student' && p.status === 'approved');
