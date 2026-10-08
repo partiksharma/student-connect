@@ -22,6 +22,10 @@ export default function AdminDashboardPage() {
 
   React.useEffect(() => {
     refreshData();
+    const interval = setInterval(() => {
+      refreshData();
+    }, 2500);
+    return () => clearInterval(interval);
   }, [refreshData]);
 
   const handleManualRefresh = async () => {

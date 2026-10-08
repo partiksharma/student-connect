@@ -23,7 +23,7 @@ import {
   Sparkles
 } from 'lucide-react';
 
-type TabType = 'all_pending' | 'students' | 'businesses' | 'approved_projects' | 'rejected_projects';
+type TabType = 'all_pending' | 'students' | 'businesses' | 'pending_projects' | 'approved_projects' | 'rejected_projects';
 
 function AdminApprovalsContent() {
   const searchParams = useSearchParams();
@@ -50,7 +50,7 @@ function AdminApprovalsContent() {
     refreshData();
     const interval = setInterval(() => {
       refreshData();
-    }, 2500);
+    }, 2000);
     return () => clearInterval(interval);
   }, [refreshData]);
 
@@ -64,7 +64,7 @@ function AdminApprovalsContent() {
   };
 
   useEffect(() => {
-    if (urlTab && ['all_pending', 'students', 'businesses', 'approved_projects', 'rejected_projects'].includes(urlTab)) {
+    if (urlTab && ['all_pending', 'students', 'businesses', 'pending_projects', 'approved_projects', 'rejected_projects'].includes(urlTab)) {
       setActiveTab(urlTab);
     }
   }, [urlTab]);
@@ -77,6 +77,10 @@ function AdminApprovalsContent() {
   const q = searchQuery.toLowerCase().trim();
 
   // Dedicated project lists by exact status
+  const pendingProjects = projects.filter((p) =>
+    p.status === 'pending_approval' &&
+    (!q || p.title.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || (p.business?.business_name && p.business.business_name.toLowerCase().includes(q)))
+  );
   const approvedProjects = projects.filter((p) => 
     (p.status === 'open' || p.status === 'in_progress' || p.status === 'completed') &&
     (!q || p.title.toLowerCase().includes(q) || p.id.toLowerCase().includes(q))
@@ -91,14 +95,14 @@ function AdminApprovalsContent() {
     if (p.role !== 'student') return false;
     if (!q) return true;
     const st = students.find((s) => s.user_id === p.id);
-    return p.email.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || st?.full_name.toLowerCase().includes(q) || st?.school.toLowerCase().includes(q);
+    return p.email.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || st?.full_name?.toLowerCase().includes(q) || st?.school?.toLowerCase().includes(q);
   });
 
   const businessProfilesList = profiles.filter((p) => {
     if (p.role !== 'business') return false;
     if (!q) return true;
     const biz = businesses.find((b) => b.user_id === p.id);
-    return p.email.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || biz?.business_name.toLowerCase().includes(q) || biz?.industry.toLowerCase().includes(q);
+    return p.email.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || biz?.business_name?.toLowerCase().includes(q) || biz?.industry?.toLowerCase().includes(q);
   });
 
   const pendingStudentProfiles = studentProfilesList.filter((p) => p.status === 'pending_approval');
@@ -107,7 +111,7 @@ function AdminApprovalsContent() {
   const pendingBusinessProfiles = businessProfilesList.filter((p) => p.status === 'pending_approval');
   const approvedBusinessProfiles = businessProfilesList.filter((p) => p.status === 'approved');
 
-  const totalPendingAll = pendingStudentProfiles.length + pendingBusinessProfiles.length;
+  const totalPendingAll = pendingStudentProfiles.length + pendingBusinessProfiles.length + pendingProjects.length;
 
   const handleRejectProject = (projectId: string, title: string) => {
     rejectProject(projectId);
@@ -274,7 +278,29 @@ function AdminApprovalsContent() {
           )}
         </button>
 
-        {/* 3. Approved Projects */}
+        {/* 3. Pending Projects */}
+        <button
+          onClick={() => setActiveTab('pending_projects')}
+          className={`pb-3 text-xs font-bold transition-colors cursor-pointer border-b-2 flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'pending_projects'
+              ? 'border-amber-400 text-amber-400'
+              : 'border-transparent text-stone-400 hover:text-white'
+          }`}
+        >
+          <Briefcase className="w-4 h-4" />
+          <span>Pending Projects</span>
+          {pendingProjects.length > 0 ? (
+            <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black animate-pulse">
+              {pendingProjects.length} Pending
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 text-[10px] font-black">
+              0
+            </span>
+          )}
+        </button>
+
+        {/* 4. Approved Projects */}
         <button
           onClick={() => setActiveTab('approved_projects')}
           className={`pb-3 text-xs font-bold transition-colors cursor-pointer border-b-2 flex items-center gap-2 whitespace-nowrap ${
@@ -290,7 +316,7 @@ function AdminApprovalsContent() {
           </span>
         </button>
 
-        {/* 4. Rejected Projects */}
+        {/* 5. Rejected Projects */}
         <button
           onClick={() => setActiveTab('rejected_projects')}
           className={`pb-3 text-xs font-bold transition-colors cursor-pointer border-b-2 flex items-center gap-2 whitespace-nowrap ${
@@ -310,7 +336,7 @@ function AdminApprovalsContent() {
       {/* Tab Contents */}
       <div className="space-y-4">
         {/* ========================================================================= */}
-        {/* SECTION 0: ALL PENDING QUEUE (STUDENTS & BUSINESSES ONLY) */}
+        {/* SECTION 0: ALL PENDING QUEUE (STUDENTS, CLIENTS & PROJECTS) */}
         {/* ========================================================================= */}
         {activeTab === 'all_pending' && (
           <div className="space-y-6">
@@ -319,18 +345,21 @@ function AdminApprovalsContent() {
                 <div>
                   <h2 className="text-sm font-black text-amber-300 flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-amber-400" />
-                    Unified Account Approvals Queue ({totalPendingAll} Accounts Waiting)
+                    Unified Platform Approvals Queue ({totalPendingAll} Items Waiting)
                   </h2>
                   <p className="text-[11px] text-stone-300 mt-0.5">
-                    Review and authorize newly registered students and client organizations.
+                    Review and authorize newly registered students, client organizations, and project scopes in real time.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold">
                     {pendingStudentProfiles.length} Students
                   </span>
                   <span className="text-[10px] px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold">
                     {pendingBusinessProfiles.length} Clients
+                  </span>
+                  <span className="text-[10px] px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold">
+                    {pendingProjects.length} Projects
                   </span>
                 </div>
               </div>
@@ -341,7 +370,7 @@ function AdminApprovalsContent() {
                 <CheckCircle2 className="w-8 h-8 text-[#34D399] mx-auto" />
                 <h3 className="text-sm font-bold text-white">All Caught Up!</h3>
                 <p className="text-xs text-[#A7F3D0]/70 max-w-sm mx-auto">
-                  There are no IDs currently waiting for verification. All accounts have been reviewed.
+                  There are no IDs or projects currently waiting for verification. All accounts and scopes have been reviewed.
                 </p>
               </div>
             ) : (
@@ -490,6 +519,156 @@ function AdminApprovalsContent() {
                     </div>
                   );
                 })}
+
+                {/* 3. Pending Projects List */}
+                {pendingProjects.map((proj) => {
+                  const bizName = proj.business?.business_name || (businesses.find((b) => b.user_id === proj.business_id)?.business_name) || 'Client Partner';
+
+                  return (
+                    <div
+                      key={`all-proj-${proj.id}`}
+                      className="bg-[#07261A] rounded-3xl p-6 border-2 border-amber-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
+                    >
+                      <div className="space-y-2.5 max-w-2xl">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                            <Briefcase className="w-3 h-3" />
+                            Project Scope Submission
+                          </span>
+                          <Badge variant="warning" size="sm">
+                            Pending Review
+                          </Badge>
+                          <span className="text-xs text-amber-300 font-bold">
+                            Client: {bizName}
+                          </span>
+                          <span className="text-xs text-[#A7F3D0]/70">
+                            • Submitted {formatDate(proj.created_at)}
+                          </span>
+                        </div>
+
+                        <h3 className="font-extrabold text-xl text-white flex items-center gap-2">
+                          {proj.title}
+                        </h3>
+
+                        <div className="text-xs text-[#A7F3D0]/90 flex flex-wrap items-center gap-2 font-medium">
+                          <span>Category: {formatCategoryName(proj.category)}</span>
+                          <span>•</span>
+                          <span>Commitment: {proj.estimated_hours_per_week || 8} hrs/wk</span>
+                          <span>•</span>
+                          <span>Duration: {proj.duration_weeks || 4} weeks</span>
+                        </div>
+
+                        <p className="text-xs text-emerald-100/90 leading-relaxed bg-[#0D3D2B]/40 p-3 rounded-2xl border border-[#16563D]/60">
+                          {proj.description}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40 text-xs font-bold"
+                          onClick={() => handleRejectProject(proj.id, proj.title)}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="yellow"
+                          className="font-extrabold text-xs shadow-md shadow-amber-500/20"
+                          onClick={() => handleApproveProject(proj.id, proj.title)}
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Approve Project
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 1: PENDING PROJECTS DEDICATED TAB */}
+        {/* ========================================================================= */}
+        {activeTab === 'pending_projects' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl">
+              <div>
+                <h2 className="text-sm font-bold text-amber-300 flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-amber-400" />
+                  Pending Project Scope Submissions ({pendingProjects.length})
+                </h2>
+                <p className="text-[11px] text-amber-200/80 mt-0.5">
+                  Review new client project scopes before publishing them to the public student marketplace.
+                </p>
+              </div>
+            </div>
+
+            {pendingProjects.length > 0 ? (
+              pendingProjects.map((proj) => {
+                const bizName = proj.business?.business_name || (businesses.find((b) => b.user_id === proj.business_id)?.business_name) || 'Client Partner';
+
+                return (
+                  <div
+                    key={proj.id}
+                    className="bg-[#07261A] rounded-3xl p-6 border-2 border-amber-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
+                  >
+                    <div className="space-y-2.5 max-w-2xl">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="warning" size="sm">
+                          Pending Approval
+                        </Badge>
+                        <span className="text-xs text-amber-300 font-bold">
+                          Client: {bizName}
+                        </span>
+                        <span className="text-xs text-[#A7F3D0]/70">
+                          • Submitted {formatDate(proj.created_at)}
+                        </span>
+                      </div>
+
+                      <h3 className="font-extrabold text-xl text-white">
+                        {proj.title}
+                      </h3>
+                      <p className="text-xs text-emerald-100/90 leading-relaxed">{proj.description}</p>
+                      <div className="text-xs text-[#A7F3D0]/80 flex flex-wrap items-center gap-4 font-semibold">
+                        <span>Category: {formatCategoryName(proj.category)}</span>
+                        <span>•</span>
+                        <span>Commitment: {proj.estimated_hours_per_week || 8} hrs/wk</span>
+                        <span>•</span>
+                        <span>Duration: {proj.duration_weeks || 4} weeks</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-rose-300 hover:text-rose-100 hover:bg-rose-900/40 text-xs font-bold"
+                        onClick={() => handleRejectProject(proj.id, proj.title)}
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Reject Scope
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="yellow"
+                        className="font-extrabold text-xs shadow-md shadow-amber-500/20"
+                        onClick={() => handleApproveProject(proj.id, proj.title)}
+                      >
+                        <Check className="w-4 h-4 mr-1" />
+                        Approve & Publish
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-16 bg-[#07261A] rounded-3xl border border-[#16563D] text-xs text-[#A7F3D0]/70 font-medium">
+                No project submissions currently awaiting moderation.
               </div>
             )}
           </div>

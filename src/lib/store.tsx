@@ -122,8 +122,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return Array.from(map.values());
   };
 
-  // Load state from Supabase Cloud DB
+  // Load state from localStorage & Supabase Cloud DB
   const refreshData = useCallback(async () => {
+    // 1. Sync from localStorage first for instant multi-tab sync
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.profiles?.length) setProfiles((prev) => mergeById(prev, parsed.profiles, 'id'));
+          if (parsed.students?.length) setStudents((prev) => mergeById(prev, parsed.students, 'user_id'));
+          if (parsed.businesses?.length) setBusinesses((prev) => mergeById(prev, parsed.businesses, 'user_id'));
+          if (parsed.projects?.length) setProjects((prev) => mergeById(prev, parsed.projects, 'id'));
+          if (parsed.applications?.length) setApplications((prev) => mergeById(prev, parsed.applications, 'id'));
+          if (parsed.workspaces?.length) setWorkspaces((prev) => mergeById(prev, parsed.workspaces, 'id'));
+          if (parsed.feedbackList?.length) setFeedbackList((prev) => mergeById(prev, parsed.feedbackList, 'id'));
+          if (parsed.reports?.length) setReports((prev) => mergeById(prev, parsed.reports, 'id'));
+          if (parsed.notifications?.length) setNotifications((prev) => mergeById(prev, parsed.notifications, 'id'));
+        }
+      } catch (err) {
+        console.warn('Failed reading localStorage in refreshData:', err);
+      }
+    }
+
+    // 2. Sync from Supabase Cloud DB
     try {
       const supabase = createClient();
       const [
@@ -190,10 +212,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Background polling every 4 seconds for cross-browser / multi-device instant sync
+    // Background polling every 2.5 seconds for instant multi-device sync
     const syncInterval = setInterval(() => {
       refreshData();
-    }, 4000);
+    }, 2500);
 
     // Restore user ID from sessionStorage first (per-tab), then localStorage
     try {
@@ -214,10 +236,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const supabase = createClient();
       realtimeChannel = supabase
         .channel('studentconnect_global_sync')
-        .on('broadcast', { event: 'ACCOUNT_REGISTERED' }, () => {
+        .on('broadcast', { event: 'ACCOUNT_REGISTERED' }, (payload: any) => {
+          if (payload?.payload?.profile) {
+            setProfiles((prev) => mergeById(prev, [payload.payload.profile], 'id'));
+          }
+          if (payload?.payload?.student) {
+            setStudents((prev) => mergeById(prev, [payload.payload.student], 'user_id'));
+          }
+          if (payload?.payload?.business) {
+            setBusinesses((prev) => mergeById(prev, [payload.payload.business], 'user_id'));
+          }
           refreshData();
         })
-        .on('broadcast', { event: 'USER_STATUS_CHANGE' }, () => {
+        .on('broadcast', { event: 'USER_STATUS_CHANGE' }, (payload: any) => {
+          if (payload?.payload?.id && payload?.payload?.status) {
+            setProfiles((prev) => prev.map((p) => p.id === payload.payload.id ? { ...p, status: payload.payload.status } : p));
+          }
           refreshData();
         })
         .on('broadcast', { event: 'PROJECT_STATUS_CHANGE' }, () => {
@@ -294,7 +328,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         bc = new BroadcastChannel('studentconnect_chat_channel');
         bc.onmessage = (event) => {
           const data = event.data;
-          if (data?.type === 'NEW_WORKSPACE_MESSAGE' && data.workspaceId && data.message) {
+          if (data?.type === 'ACCOUNT_REGISTERED') {
+            if (data.profile) {
+              setProfiles((prev) => mergeById(prev, [data.profile], 'id'));
+            }
+            if (data.student) {
+              setStudents((prev) => mergeById(prev, [data.student], 'user_id'));
+            }
+            if (data.business) {
+              setBusinesses((prev) => mergeById(prev, [data.business], 'user_id'));
+            }
+            refreshData();
+          } else if (data?.type === 'USER_STATUS_CHANGE' && data.userId && data.status) {
+            setProfiles((prev) =>
+              prev.map((p) => (p.id === data.userId ? { ...p, status: data.status, updated_at: new Date().toISOString() } : p))
+            );
+          } else if (data?.type === 'USER_DELETED' && data.userId) {
+            setProfiles((prev) => prev.filter((p) => p.id !== data.userId));
+            setStudents((prev) => prev.filter((s) => s.user_id !== data.userId));
+            setBusinesses((prev) => prev.filter((b) => b.user_id !== data.userId));
+          } else if (data?.type === 'NEW_WORKSPACE_MESSAGE' && data.workspaceId && data.message) {
             setWorkspaces((prev) =>
               prev.map((ws) => {
                 if (ws.id !== data.workspaceId) return ws;
@@ -598,6 +651,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setStudents((prev) => [...prev.filter((s) => s.user_id !== newId), newStudent]);
     setCurrentUserId(newId);
 
+    // Immediate LocalStorage persist for instant availability across tabs and reloads
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const parsed = saved ? JSON.parse(saved) : {};
+        const updatedProfiles = [...(parsed.profiles || profiles).filter((p: any) => p.id !== newId), newProfile];
+        const updatedStudents = [...(parsed.students || students).filter((s: any) => s.user_id !== newId), newStudent];
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            ...parsed,
+            profiles: updatedProfiles,
+            students: updatedStudents,
+          })
+        );
+        sessionStorage.setItem(CURRENT_USER_KEY, newId);
+        localStorage.setItem(CURRENT_USER_KEY, newId);
+      } catch {}
+    }
+
+    // Instant sync broadcast across windows / browser tabs
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('studentconnect_chat_channel');
+        bc.postMessage({
+          type: 'ACCOUNT_REGISTERED',
+          profile: newProfile,
+          student: newStudent,
+          role: 'student'
+        });
+        setTimeout(() => {
+          try { bc.close(); } catch {}
+        }, 500);
+      }
+    } catch {}
+
     // Save DIRECTLY to Supabase Database Tables with await
     try {
       const supabase = createClient();
@@ -622,6 +711,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (stuRes.error) console.error('Supabase student_profile insert error:', stuRes.error);
       else console.log('Supabase student profile saved successfully');
 
+      // Global Supabase Realtime broadcast for instant cross-device admin notification
+      const channel = supabase.channel('studentconnect_global_sync');
+      channel.send({
+        type: 'broadcast',
+        event: 'ACCOUNT_REGISTERED',
+        payload: { profile: newProfile, student: newStudent, id: newId, role: 'student', email }
+      }).catch(() => {});
+
       // Background auth sign-up (optional)
       supabase.auth.signUp({
         email: email.trim().toLowerCase(),
@@ -630,34 +727,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.warn('Could not sync registration to Supabase:', err);
     }
-
-    // Global Supabase Realtime broadcast for instant cross-device admin notification
-    try {
-      const supabase = createClient();
-      const channel = supabase.channel('studentconnect_global_sync');
-      channel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          channel.send({
-            type: 'broadcast',
-            event: 'ACCOUNT_REGISTERED',
-            payload: { id: newId, role: 'student', email }
-          }).then(() => {
-            try { supabase.removeChannel(channel); } catch {}
-          });
-        }
-      });
-    } catch {}
-
-    // Instant sync broadcast across windows / browser tabs
-    try {
-      if (typeof BroadcastChannel !== 'undefined') {
-        const bc = new BroadcastChannel('studentconnect_chat_channel');
-        bc.postMessage({ type: 'SYNC_STATE' });
-        setTimeout(() => {
-          try { bc.close(); } catch {}
-        }, 500);
-      }
-    } catch {}
 
     return newId;
   };
@@ -699,6 +768,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setBusinesses((prev) => [...prev.filter((b) => b.user_id !== newId), newBusiness]);
     setCurrentUserId(newId);
 
+    // Immediate LocalStorage persist for instant availability across tabs and reloads
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const parsed = saved ? JSON.parse(saved) : {};
+        const updatedProfiles = [...(parsed.profiles || profiles).filter((p: any) => p.id !== newId), newProfile];
+        const updatedBusinesses = [...(parsed.businesses || businesses).filter((b: any) => b.user_id !== newId), newBusiness];
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            ...parsed,
+            profiles: updatedProfiles,
+            businesses: updatedBusinesses,
+          })
+        );
+        sessionStorage.setItem(CURRENT_USER_KEY, newId);
+        localStorage.setItem(CURRENT_USER_KEY, newId);
+      } catch {}
+    }
+
+    // Instant sync broadcast across windows / browser tabs
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('studentconnect_chat_channel');
+        bc.postMessage({
+          type: 'ACCOUNT_REGISTERED',
+          profile: newProfile,
+          business: newBusiness,
+          role: 'business'
+        });
+        setTimeout(() => {
+          try { bc.close(); } catch {}
+        }, 500);
+      }
+    } catch {}
+
     // Save DIRECTLY to Supabase Database Tables with await
     try {
       const supabase = createClient();
@@ -721,6 +826,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (bizRes.error) console.error('Supabase business_profile insert error:', bizRes.error);
       else console.log('Supabase business profile saved successfully');
 
+      // Global Supabase Realtime broadcast for instant cross-device admin notification
+      const channel = supabase.channel('studentconnect_global_sync');
+      channel.send({
+        type: 'broadcast',
+        event: 'ACCOUNT_REGISTERED',
+        payload: { profile: newProfile, business: newBusiness, id: newId, role: 'business', email }
+      }).catch(() => {});
+
       // Background auth sign-up (optional)
       supabase.auth.signUp({
         email: email.trim().toLowerCase(),
@@ -729,34 +842,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.warn('Could not sync business registration to Supabase:', err);
     }
-
-    // Global Supabase Realtime broadcast for instant cross-device admin notification
-    try {
-      const supabase = createClient();
-      const channel = supabase.channel('studentconnect_global_sync');
-      channel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          channel.send({
-            type: 'broadcast',
-            event: 'ACCOUNT_REGISTERED',
-            payload: { id: newId, role: 'business', email }
-          }).then(() => {
-            try { supabase.removeChannel(channel); } catch {}
-          });
-        }
-      });
-    } catch {}
-
-    // Instant sync broadcast across windows / browser tabs
-    try {
-      if (typeof BroadcastChannel !== 'undefined') {
-        const bc = new BroadcastChannel('studentconnect_chat_channel');
-        bc.postMessage({ type: 'SYNC_STATE' });
-        setTimeout(() => {
-          try { bc.close(); } catch {}
-        }, 500);
-      }
-    } catch {}
 
     return newId;
   };
@@ -1157,28 +1242,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const approveUser = (userId: string) => {
     setProfiles((prev) => prev.map((p) => (p.id === userId ? { ...p, status: 'approved', updated_at: new Date().toISOString() } : p)));
+
+    // Immediate LocalStorage persist
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const updated = (parsed.profiles || []).map((p: any) => p.id === userId ? { ...p, status: 'approved', updated_at: new Date().toISOString() } : p);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, profiles: updated }));
+        }
+      } catch {}
+    }
+
+    // Instant BroadcastChannel sync
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('studentconnect_chat_channel');
+        bc.postMessage({ type: 'USER_STATUS_CHANGE', userId, status: 'approved' });
+        setTimeout(() => { try { bc.close(); } catch {} }, 500);
+      }
+    } catch {}
+
+    // Cloud DB sync & Realtime Broadcast
     try {
       const supabase = createClient();
       supabase.from('profiles').update({ status: 'approved', updated_at: new Date().toISOString() }).eq('id', userId).then(() => {});
       const channel = supabase.channel('studentconnect_global_sync');
-      channel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          channel.send({
-            type: 'broadcast',
-            event: 'USER_STATUS_CHANGE',
-            payload: { id: userId, status: 'approved' }
-          }).then(() => {
-            try { supabase.removeChannel(channel); } catch {}
-          });
-        }
-      });
-    } catch {}
-    try {
-      if (typeof BroadcastChannel !== 'undefined') {
-        const bc = new BroadcastChannel('studentconnect_chat_channel');
-        bc.postMessage({ type: 'SYNC_STATE' });
-        setTimeout(() => { try { bc.close(); } catch {} }, 500);
-      }
+      channel.send({
+        type: 'broadcast',
+        event: 'USER_STATUS_CHANGE',
+        payload: { id: userId, status: 'approved' }
+      }).catch(() => {});
     } catch {}
   };
 
@@ -1187,60 +1282,116 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setStudents((prev) => prev.filter((s) => s.user_id !== userId));
     setBusinesses((prev) => prev.filter((b) => b.user_id !== userId));
     setProjects((prev) => prev.filter((p) => p.business_id !== userId));
+
+    // Immediate LocalStorage persist
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({
+              ...parsed,
+              profiles: (parsed.profiles || []).filter((p: any) => p.id !== userId),
+              students: (parsed.students || []).filter((s: any) => s.user_id !== userId),
+              businesses: (parsed.businesses || []).filter((b: any) => b.user_id !== userId),
+              projects: (parsed.projects || []).filter((p: any) => p.business_id !== userId),
+            })
+          );
+        }
+      } catch {}
+    }
+
+    // Instant BroadcastChannel sync
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('studentconnect_chat_channel');
+        bc.postMessage({ type: 'USER_DELETED', userId });
+        setTimeout(() => { try { bc.close(); } catch {} }, 500);
+      }
+    } catch {}
+
+    // Cloud DB delete & Realtime Broadcast
     try {
       const supabase = createClient();
       supabase.from('profiles').delete().eq('id', userId).then(() => {});
       supabase.from('student_profiles').delete().eq('user_id', userId).then(() => {});
       supabase.from('business_profiles').delete().eq('user_id', userId).then(() => {});
       const channel = supabase.channel('studentconnect_global_sync');
-      channel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          channel.send({
-            type: 'broadcast',
-            event: 'USER_STATUS_CHANGE',
-            payload: { id: userId, status: 'rejected' }
-          }).then(() => {
-            try { supabase.removeChannel(channel); } catch {}
-          });
-        }
-      });
-    } catch {}
-    try {
-      if (typeof BroadcastChannel !== 'undefined') {
-        const bc = new BroadcastChannel('studentconnect_chat_channel');
-        bc.postMessage({ type: 'SYNC_STATE' });
-        setTimeout(() => { try { bc.close(); } catch {} }, 500);
-      }
+      channel.send({
+        type: 'broadcast',
+        event: 'USER_STATUS_CHANGE',
+        payload: { id: userId, status: 'rejected' }
+      }).catch(() => {});
     } catch {}
   };
 
   const approveProject = (projectId: string) => {
     setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, status: 'open', updated_at: new Date().toISOString() } : p)));
-    try {
-      const supabase = createClient();
-      supabase.from('projects').update({ status: 'open', updated_at: new Date().toISOString() }).eq('id', projectId).then(() => {});
-    } catch {}
+
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const updated = (parsed.projects || []).map((p: any) => p.id === projectId ? { ...p, status: 'open', updated_at: new Date().toISOString() } : p);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, projects: updated }));
+        }
+      } catch {}
+    }
+
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('studentconnect_chat_channel');
         bc.postMessage({ type: 'SYNC_STATE' });
         setTimeout(() => { try { bc.close(); } catch {} }, 500);
       }
+    } catch {}
+
+    try {
+      const supabase = createClient();
+      supabase.from('projects').update({ status: 'open', updated_at: new Date().toISOString() }).eq('id', projectId).then(() => {});
+      const channel = supabase.channel('studentconnect_global_sync');
+      channel.send({
+        type: 'broadcast',
+        event: 'PROJECT_STATUS_CHANGE',
+        payload: { id: projectId, status: 'open' }
+      }).catch(() => {});
     } catch {}
   };
 
   const rejectProject = (projectId: string) => {
     setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, status: 'rejected', updated_at: new Date().toISOString() } : p)));
-    try {
-      const supabase = createClient();
-      supabase.from('projects').update({ status: 'rejected', updated_at: new Date().toISOString() }).eq('id', projectId).then(() => {});
-    } catch {}
+
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const updated = (parsed.projects || []).map((p: any) => p.id === projectId ? { ...p, status: 'rejected', updated_at: new Date().toISOString() } : p);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, projects: updated }));
+        }
+      } catch {}
+    }
+
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('studentconnect_chat_channel');
         bc.postMessage({ type: 'SYNC_STATE' });
         setTimeout(() => { try { bc.close(); } catch {} }, 500);
       }
+    } catch {}
+
+    try {
+      const supabase = createClient();
+      supabase.from('projects').update({ status: 'rejected', updated_at: new Date().toISOString() }).eq('id', projectId).then(() => {});
+      const channel = supabase.channel('studentconnect_global_sync');
+      channel.send({
+        type: 'broadcast',
+        event: 'PROJECT_STATUS_CHANGE',
+        payload: { id: projectId, status: 'rejected' }
+      }).catch(() => {});
     } catch {}
   };
 
