@@ -46,6 +46,36 @@ export default function NewProjectPostingPage() {
     );
   }
 
+  if (currentUser.status === 'pending_approval') {
+    return (
+      <div className="max-w-md mx-auto py-24 px-4 text-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+          <Clock className="w-6 h-6" />
+        </div>
+        <h2 className="text-2xl font-black text-[#111C16]">Verification Pending</h2>
+        <p className="text-xs text-stone-600">Your client business profile is currently awaiting administrator verification. You will be able to post projects once approved.</p>
+        <Link href="/business/dashboard">
+          <Button variant="primary">Return to Business Hub</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (currentUser.status === 'rejected') {
+    return (
+      <div className="max-w-md mx-auto py-24 px-4 text-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mx-auto">
+          <ShieldAlert className="w-6 h-6" />
+        </div>
+        <h2 className="text-2xl font-black text-[#111C16]">Account Rejected</h2>
+        <p className="text-xs text-stone-600">Your client organization account was rejected by an administrator. Posting projects is restricted.</p>
+        <Link href="/business/dashboard">
+          <Button variant="primary">Return to Business Hub</Button>
+        </Link>
+      </div>
+    );
+  }
+
   const handleAddSkill = () => {
     if (newSkillInput.trim() && !skills.includes(newSkillInput.trim())) {
       setSkills([...skills, newSkillInput.trim()]);

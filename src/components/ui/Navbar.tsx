@@ -252,6 +252,9 @@ export function Navbar() {
                         {currentUser.status === 'pending_approval' && (
                           <span className="text-[#0D3D2B] font-bold">(Pending Verification)</span>
                         )}
+                        {currentUser.status === 'rejected' && (
+                          <span className="text-rose-600 font-bold">(Account Rejected)</span>
+                        )}
                       </div>
                     </div>
                     <ChevronDown className="w-3.5 h-3.5 text-stone-400 ml-1" />
@@ -485,6 +488,16 @@ export function Navbar() {
           <Clock className="w-4 h-4 text-[#34D399]" />
           <span>
             Your account profile is currently awaiting verification by the community team.
+          </span>
+        </div>
+      )}
+
+      {/* Rejected Account Notice Banner */}
+      {currentUser?.status === 'rejected' && currentUser.role !== 'admin' && (
+        <div className="bg-rose-950 border-t border-rose-800 text-rose-200 px-4 py-2 text-xs font-bold flex items-center justify-center gap-2">
+          <X className="w-4 h-4 text-rose-400" />
+          <span>
+            Your account verification was rejected by the administrator. Contact support if you believe this was an error.
           </span>
         </div>
       )}

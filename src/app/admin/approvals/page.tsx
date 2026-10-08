@@ -23,7 +23,7 @@ import {
   Sparkles
 } from 'lucide-react';
 
-type TabType = 'all_pending' | 'students' | 'businesses' | 'pending_projects' | 'approved_projects' | 'rejected_projects';
+type TabType = 'all_pending' | 'students' | 'businesses' | 'rejected_users' | 'pending_projects' | 'approved_projects' | 'rejected_projects';
 
 function AdminApprovalsContent() {
   const searchParams = useSearchParams();
@@ -65,7 +65,7 @@ function AdminApprovalsContent() {
   };
 
   useEffect(() => {
-    if (urlTab && ['all_pending', 'students', 'businesses', 'pending_projects', 'approved_projects', 'rejected_projects'].includes(urlTab)) {
+    if (urlTab && ['all_pending', 'students', 'businesses', 'rejected_users', 'pending_projects', 'approved_projects', 'rejected_projects'].includes(urlTab)) {
       setActiveTab(urlTab);
     }
   }, [urlTab]);
@@ -108,11 +108,14 @@ function AdminApprovalsContent() {
 
   const pendingStudentProfiles = studentProfilesList.filter((p) => p.status === 'pending_approval' || (p.status as string) === 'pending');
   const approvedStudentProfiles = studentProfilesList.filter((p) => p.status === 'approved');
+  const rejectedStudentProfiles = studentProfilesList.filter((p) => p.status === 'rejected');
 
   const pendingBusinessProfiles = businessProfilesList.filter((p) => p.status === 'pending_approval' || (p.status as string) === 'pending');
   const approvedBusinessProfiles = businessProfilesList.filter((p) => p.status === 'approved');
+  const rejectedBusinessProfiles = businessProfilesList.filter((p) => p.status === 'rejected');
 
   const totalPendingAll = pendingStudentProfiles.length + pendingBusinessProfiles.length + pendingProjects.length;
+  const totalRejectedUsers = rejectedStudentProfiles.length + rejectedBusinessProfiles.length;
 
   const handleRejectProject = (projectId: string, title: string) => {
     rejectProject(projectId);
@@ -282,6 +285,24 @@ function AdminApprovalsContent() {
               {businessProfilesList.length}
             </span>
           )}
+        </button>
+
+        {/* 2.5 Rejected Accounts */}
+        <button
+          onClick={() => setActiveTab('rejected_users')}
+          className={`pb-3 text-xs font-bold transition-colors cursor-pointer border-b-2 flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'rejected_users'
+              ? 'border-rose-400 text-rose-400'
+              : 'border-transparent text-stone-400 hover:text-white'
+          }`}
+        >
+          <X className="w-4 h-4 text-rose-400" />
+          <span>Rejected Accounts</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            totalRejectedUsers > 0 ? 'bg-rose-950 border border-rose-800 text-rose-300' : 'bg-stone-800 text-stone-400'
+          }`}>
+            {totalRejectedUsers}
+          </span>
         </button>
 
         {/* 3. Pending Projects */}
@@ -1008,6 +1029,79 @@ function AdminApprovalsContent() {
                 </div>
               )}
             </div>
+
+            {/* 4C. Rejected Students */}
+            <div className="space-y-3 pt-4">
+              <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">
+                <div>
+                  <h2 className="text-sm font-bold text-rose-300 flex items-center gap-2">
+                    <X className="w-4 h-4 text-rose-400" />
+                    Rejected Student Accounts ({rejectedStudentProfiles.length})
+                  </h2>
+                  <p className="text-[11px] text-rose-200/80 mt-0.5">
+                    Student profiles rejected by moderator. You can re-evaluate or restore them at any time.
+                  </p>
+                </div>
+              </div>
+
+              {rejectedStudentProfiles.length > 0 ? (
+                rejectedStudentProfiles.map((p) => {
+                  const st = students.find((s) => s.user_id === p.id);
+                  const displayName = st?.full_name || p.email.split('@')[0];
+
+                  return (
+                    <div
+                      key={`rej-stu-${p.id}`}
+                      className="bg-[#07261A] rounded-3xl p-6 border border-rose-900/50 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
+                    >
+                      <div className="space-y-2 max-w-2xl">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-900/60 text-rose-300 font-bold border border-rose-700">
+                            Status: Rejected
+                          </span>
+                          <span className="text-xs text-rose-200/70">
+                            {p.email} • Registered {formatDate(p.created_at)}
+                          </span>
+                        </div>
+                        <h3 className="font-extrabold text-lg text-rose-100">
+                          {displayName}
+                        </h3>
+                        <div className="text-xs text-stone-400 flex flex-wrap items-center gap-2 font-medium">
+                          <span>{st?.school || 'University Student'}</span>
+                          <span>•</span>
+                          <span>Class of {st?.graduation_year || 2026}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-amber-300 hover:text-amber-100 hover:bg-amber-900/40 text-xs font-bold"
+                          onClick={() => handleResetUserToPending(p.id, p.email)}
+                        >
+                          <Clock className="w-3.5 h-3.5 mr-1 text-amber-400" />
+                          Move to Pending
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="yellow"
+                          className="font-bold text-xs"
+                          onClick={() => handleApproveUser(p.id, p.email)}
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Restore & Approve
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-6 bg-[#07261A] rounded-3xl border border-[#16563D] text-xs text-[#A7F3D0]/70 font-medium">
+                  No rejected student accounts on record.
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1182,6 +1276,240 @@ function AdminApprovalsContent() {
                 </div>
               )}
             </div>
+
+            {/* 5C. Rejected Businesses */}
+            <div className="space-y-3 pt-4">
+              <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">
+                <div>
+                  <h2 className="text-sm font-bold text-rose-300 flex items-center gap-2">
+                    <X className="w-4 h-4 text-rose-400" />
+                    Rejected Business Accounts ({rejectedBusinessProfiles.length})
+                  </h2>
+                  <p className="text-[11px] text-rose-200/80 mt-0.5">
+                    Client business accounts rejected by administrator. You can restore or re-approve them at any time.
+                  </p>
+                </div>
+              </div>
+
+              {rejectedBusinessProfiles.length > 0 ? (
+                rejectedBusinessProfiles.map((p) => {
+                  const biz = businesses.find((b) => b.user_id === p.id);
+                  const bName = biz?.business_name || p.email.split('@')[0];
+
+                  return (
+                    <div
+                      key={`rej-biz-${p.id}`}
+                      className="bg-[#07261A] rounded-3xl p-6 border border-rose-900/50 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
+                    >
+                      <div className="space-y-2 max-w-2xl">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-900/60 text-rose-300 font-bold border border-rose-700">
+                            Status: Rejected
+                          </span>
+                          <span className="text-xs text-rose-200/70">
+                            {p.email} • Registered {formatDate(p.created_at)}
+                          </span>
+                        </div>
+                        <h3 className="font-extrabold text-lg text-rose-100">
+                          {bName}
+                        </h3>
+                        <div className="text-xs text-stone-400 flex flex-wrap items-center gap-2 font-medium">
+                          <span>Industry: {biz?.industry || 'General'}</span>
+                          <span>•</span>
+                          <span>Location: {biz?.location || 'Local'}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-amber-300 hover:text-amber-100 hover:bg-amber-900/40 text-xs font-bold"
+                          onClick={() => handleResetUserToPending(p.id, p.email)}
+                        >
+                          <Clock className="w-3.5 h-3.5 mr-1 text-amber-400" />
+                          Move to Pending
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="yellow"
+                          className="font-bold text-xs"
+                          onClick={() => handleApproveUser(p.id, p.email)}
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Restore & Approve
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-6 bg-[#07261A] rounded-3xl border border-[#16563D] text-xs text-[#A7F3D0]/70 font-medium">
+                  No rejected business accounts on record.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 6: DEDICATED REJECTED ACCOUNTS VIEW (STUDENTS & BUSINESSES) */}
+        {/* ========================================================================= */}
+        {activeTab === 'rejected_users' && (
+          <div className="space-y-6">
+            <div className="bg-rose-500/10 border border-rose-500/20 p-5 rounded-3xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-bold text-rose-300 flex items-center gap-2">
+                    <X className="w-4 h-4 text-rose-400" />
+                    All Rejected Accounts ({totalRejectedUsers})
+                  </h2>
+                  <p className="text-[11px] text-rose-200/80 mt-0.5">
+                    User profiles that were rejected during moderation. These users cannot access protected features unless re-approved.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] px-2.5 py-1 rounded-full bg-rose-950 border border-rose-800 text-rose-300 font-bold">
+                    {rejectedStudentProfiles.length} Students
+                  </span>
+                  <span className="text-[10px] px-2.5 py-1 rounded-full bg-rose-950 border border-rose-800 text-rose-300 font-bold">
+                    {rejectedBusinessProfiles.length} Businesses
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {totalRejectedUsers === 0 ? (
+              <div className="text-center py-16 bg-[#07261A] rounded-3xl border border-[#16563D] text-xs text-[#A7F3D0]/70 font-medium">
+                No rejected student or client accounts currently on file.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Rejected Students */}
+                {rejectedStudentProfiles.map((p) => {
+                  const st = students.find((s) => s.user_id === p.id);
+                  const displayName = st?.full_name || p.email.split('@')[0];
+
+                  return (
+                    <div
+                      key={`tab-rej-stu-${p.id}`}
+                      className="bg-[#07261A] rounded-3xl p-6 border border-rose-900/60 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
+                    >
+                      <div className="space-y-2 max-w-2xl">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                            <GraduationCap className="w-3 h-3" />
+                            Student Account
+                          </span>
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-900/60 text-rose-300 font-bold border border-rose-700">
+                            Rejected
+                          </span>
+                          <span className="text-xs text-rose-200/80 font-bold">
+                            {p.email}
+                          </span>
+                          <span className="text-xs text-[#A7F3D0]/60">
+                            • Registered {formatDate(p.created_at)}
+                          </span>
+                        </div>
+
+                        <h3 className="font-extrabold text-xl text-rose-100">
+                          {displayName}
+                        </h3>
+
+                        <div className="text-xs text-[#A7F3D0]/80 flex flex-wrap items-center gap-2 font-medium">
+                          <span>🏫 {st?.school || 'University Student'}</span>
+                          <span>•</span>
+                          <span>🎓 Class of {st?.graduation_year || 2027}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-amber-300 hover:text-amber-100 hover:bg-amber-900/40 text-xs font-bold"
+                          onClick={() => handleResetUserToPending(p.id, p.email)}
+                        >
+                          <Clock className="w-3.5 h-3.5 mr-1 text-amber-400" />
+                          Move to Pending
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="yellow"
+                          className="font-bold text-xs"
+                          onClick={() => handleApproveUser(p.id, p.email)}
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Restore & Approve
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Rejected Businesses */}
+                {rejectedBusinessProfiles.map((p) => {
+                  const biz = businesses.find((b) => b.user_id === p.id);
+                  const bName = biz?.business_name || p.email.split('@')[0];
+
+                  return (
+                    <div
+                      key={`tab-rej-biz-${p.id}`}
+                      className="bg-[#07261A] rounded-3xl p-6 border border-rose-900/60 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-6 text-white"
+                    >
+                      <div className="space-y-2 max-w-2xl">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/40 text-blue-300 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                            <Building className="w-3 h-3" />
+                            Client Organization
+                          </span>
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-900/60 text-rose-300 font-bold border border-rose-700">
+                            Rejected
+                          </span>
+                          <span className="text-xs text-rose-200/80 font-bold">
+                            {p.email}
+                          </span>
+                          <span className="text-xs text-[#A7F3D0]/60">
+                            • Registered {formatDate(p.created_at)}
+                          </span>
+                        </div>
+
+                        <h3 className="font-extrabold text-xl text-rose-100">
+                          {bName}
+                        </h3>
+
+                        <div className="text-xs text-[#A7F3D0]/80 flex flex-wrap items-center gap-2 font-medium">
+                          <span>Industry: {biz?.industry || 'General'}</span>
+                          <span>•</span>
+                          <span>Location: {biz?.location || 'Local'}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-amber-300 hover:text-amber-100 hover:bg-amber-900/40 text-xs font-bold"
+                          onClick={() => handleResetUserToPending(p.id, p.email)}
+                        >
+                          <Clock className="w-3.5 h-3.5 mr-1 text-amber-400" />
+                          Move to Pending
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="yellow"
+                          className="font-bold text-xs"
+                          onClick={() => handleApproveUser(p.id, p.email)}
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Restore & Approve
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

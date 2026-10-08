@@ -54,8 +54,27 @@ interface AppContextType {
   refreshData: () => Promise<void>;
 
   // Mutations
-  registerStudent: (email: string, fullName: string, school: string, gradYear: number, skills: string[], hours: number, bio: string, portfolioUrls: string[]) => Promise<string>;
-  registerBusiness: (email: string, businessName: string, industry: string, size: string, location: string, description: string, websiteUrl?: string) => Promise<string>;
+  registerStudent: (
+    email: string,
+    fullName: string,
+    school: string,
+    gradYear: number,
+    skills: string[],
+    hours: number,
+    bio: string,
+    portfolioUrls: string[],
+    password?: string
+  ) => Promise<string>;
+  registerBusiness: (
+    email: string,
+    businessName: string,
+    industry: string,
+    size: string,
+    location: string,
+    description: string,
+    websiteUrl?: string,
+    password?: string
+  ) => Promise<string>;
   
   createProject: (projectData: Omit<Project, 'id' | 'business_id' | 'status' | 'created_at' | 'updated_at'>) => Project;
   updateProjectStatus: (projectId: string, status: ProjectStatus) => void;
@@ -75,9 +94,9 @@ interface AppContextType {
   submitFeedback: (projectId: string, recipientId: string, rating: number, testimonial: string) => void;
   
   // Admin Moderation Actions
-  approveUser: (userId: string) => void;
-  rejectUser: (userId: string) => void;
-  resetUserToPending: (userId: string) => void;
+  approveUser: (userId: string) => Promise<void>;
+  rejectUser: (userId: string) => Promise<void>;
+  resetUserToPending: (userId: string) => Promise<void>;
   approveProject: (projectId: string) => void;
   rejectProject: (projectId: string) => void;
   resolveReport: (reportId: string, action: 'resolved' | 'dismissed') => void;
@@ -107,20 +126,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // The real user ID is restored from localStorage in useEffect below.
   const [currentUserId, setCurrentUserId] = useState<string>('');
 
-    // Helper to merge local saved state with default/seed data without wiping out new additions
+  // Helper to merge local saved state with default/seed data without wiping out new additions or duplicating by email
   const mergeById = <T extends Record<string, any>>(initial: T[], saved: T[] = [], idKey: string = 'id'): T[] => {
     const map = new Map<string, T>();
+    const emailToKey = new Map<string, string>();
+
     initial.forEach((item) => {
-      const key = item[idKey] || item.id || item.user_id;
-      if (key) map.set(key, item);
-    });
-    saved.forEach((item) => {
-      const key = item[idKey] || item.id || item.user_id;
-      if (key) {
-        const existing = map.get(key);
-        map.set(key, { ...existing, ...item });
+      const primaryKey = item[idKey] || item.id || item.user_id;
+      if (primaryKey) {
+        map.set(primaryKey, item);
+        if (item.email) {
+          emailToKey.set(item.email.toLowerCase(), primaryKey);
+        }
       }
     });
+
+    saved.forEach((item) => {
+      const primaryKey = item[idKey] || item.id || item.user_id;
+      const email = item.email ? item.email.toLowerCase() : '';
+      
+      // If we already have a record for this email under another key, prioritize the latest primaryKey
+      const existingKeyForEmail = email ? emailToKey.get(email) : null;
+      const targetKey = primaryKey || existingKeyForEmail;
+
+      if (targetKey) {
+        const existing = map.get(targetKey) || (existingKeyForEmail ? map.get(existingKeyForEmail) : undefined);
+        if (existingKeyForEmail && existingKeyForEmail !== targetKey) {
+          map.delete(existingKeyForEmail);
+        }
+        map.set(targetKey, { ...existing, ...item });
+        if (email) {
+          emailToKey.set(email, targetKey);
+        }
+      }
+    });
+
     return Array.from(map.values());
   };
 
@@ -147,7 +187,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // 2. Sync from Supabase Cloud DB
+    // 2. Authoritative sync from Supabase Cloud DB
     try {
       const supabase = createClient();
       const [
@@ -156,7 +196,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         { data: dbBiz },
         { data: dbProjects }
       ] = await Promise.all([
-        supabase.from('profiles').select('*'),
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
         supabase.from('student_profiles').select('*'),
         supabase.from('business_profiles').select('*'),
         supabase.from('projects').select('*')
@@ -502,6 +542,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== 'undefined') {
         localStorage.setItem(CURRENT_USER_KEY, adminProfile.id);
         sessionStorage.setItem(CURRENT_USER_KEY, adminProfile.id);
+        localStorage.setItem('studentconnect_admin_secret', 'Admin@StudentConnect2025!');
       }
       return adminProfile;
     }
@@ -515,19 +556,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Match exact email, user ID, username (e.g. 'nextphase'), or business name
-    let existingProfile = profiles.find((p) => 
-      p.email.toLowerCase() === cleanInput ||
-      p.id.toLowerCase() === cleanInput ||
-      (cleanInput.length > 2 && p.email.toLowerCase().startsWith(cleanInput + '@')) ||
-      (cleanInput.includes('nextphase') && (p.id.includes('nextphase') || p.email.includes('nextphase')))
-    );
+    // Always check authoritative Supabase cloud database first for the latest profile state and verification status
+    let existingProfile: Profile | null = null;
+    try {
+      const supabase = createClient();
+      const { data: dbProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .or(`email.eq.${cleanInput},id.eq.${cleanInput}`)
+        .maybeSingle();
+
+      if (dbProfile) {
+        existingProfile = dbProfile as Profile;
+        setProfiles((prev) => mergeById(prev, [dbProfile as Profile], 'id'));
+      }
+    } catch (err) {
+      console.warn('Notice querying Supabase during login:', err);
+    }
+
+    // Fallback to local profiles list if database was offline or reached by alias
+    if (!existingProfile) {
+      existingProfile = profiles.find((p) => 
+        p.email.toLowerCase() === cleanInput ||
+        p.id.toLowerCase() === cleanInput ||
+        (cleanInput.length > 2 && p.email.toLowerCase().startsWith(cleanInput + '@')) ||
+        (cleanInput.includes('nextphase') && (p.id.includes('nextphase') || p.email.includes('nextphase')))
+      ) || null;
+    }
 
     // If not found in profiles, check matching business name in businesses
     if (!existingProfile) {
       const matchBiz = businesses.find((b) => b.business_name.toLowerCase() === cleanInput || b.user_id.toLowerCase() === cleanInput);
       if (matchBiz) {
-        existingProfile = profiles.find((p) => p.id === matchBiz.user_id);
+        existingProfile = profiles.find((p) => p.id === matchBiz.user_id) || null;
       }
     }
 
@@ -535,20 +596,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!existingProfile) {
       const matchStu = students.find((s) => s.full_name.toLowerCase() === cleanInput || s.user_id.toLowerCase() === cleanInput);
       if (matchStu) {
-        existingProfile = profiles.find((p) => p.id === matchStu.user_id);
-      }
-    }
-
-    if (!existingProfile) {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase.from('profiles').select('*').eq('email', cleanInput).maybeSingle();
-        if (data) {
-          existingProfile = data as Profile;
-          setProfiles((prev) => [...prev, data as Profile]);
-        }
-      } catch (err) {
-        console.warn('Error querying profile by email:', err);
+        existingProfile = profiles.find((p) => p.id === matchStu.user_id) || null;
       }
     }
 
@@ -640,13 +688,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     skills: string[],
     hours: number,
     bio: string,
-    portfolioUrls: string[]
+    portfolioUrls: string[],
+    password?: string
   ): Promise<string> => {
-    const newId = generateUUID();
+    const cleanEmail = email.trim().toLowerCase();
 
-    const newProfile: Profile = {
-      id: newId,
-      email: email.trim().toLowerCase(),
+    // 1. Authoritative Server Registration Call
+    let registeredProfile: Profile | null = null;
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          password: password || 'Password123!',
+          role: 'student',
+          fullName,
+          school,
+          graduationYear: gradYear,
+          skills,
+          availabilityHours: hours,
+          bio,
+          portfolioUrls,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+      if (data.profile) {
+        registeredProfile = data.profile;
+      }
+    } catch (apiErr: any) {
+      console.warn('Server registration notice:', apiErr);
+      if (apiErr.message && !apiErr.message.includes('fetch')) {
+        throw apiErr;
+      }
+    }
+
+    const assignedId = registeredProfile?.id || generateUUID();
+    const newProfile: Profile = registeredProfile || {
+      id: assignedId,
+      email: cleanEmail,
       role: 'student',
       status: 'pending_approval',
       created_at: new Date().toISOString(),
@@ -654,7 +738,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     const newStudent: StudentProfile = {
-      user_id: newId,
+      user_id: assignedId,
       full_name: fullName,
       school,
       graduation_year: gradYear,
@@ -664,21 +748,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       portfolio_urls: portfolioUrls,
       is_public: true,
       avatar_url: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: newProfile.created_at,
+      updated_at: newProfile.updated_at,
     };
 
-    setProfiles((prev) => [...prev.filter((p) => p.id !== newId), newProfile]);
-    setStudents((prev) => [...prev.filter((s) => s.user_id !== newId), newStudent]);
-    setCurrentUserId(newId);
+    setProfiles((prev) => [...prev.filter((p) => p.id !== assignedId && p.email.toLowerCase() !== cleanEmail), newProfile]);
+    setStudents((prev) => [...prev.filter((s) => s.user_id !== assignedId), newStudent]);
+    setCurrentUserId(assignedId);
 
     // Immediate LocalStorage persist for instant availability across tabs and reloads
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         const parsed = saved ? JSON.parse(saved) : {};
-        const updatedProfiles = [...(parsed.profiles || profiles).filter((p: any) => p.id !== newId), newProfile];
-        const updatedStudents = [...(parsed.students || students).filter((s: any) => s.user_id !== newId), newStudent];
+        const updatedProfiles = [...(parsed.profiles || profiles).filter((p: any) => p.id !== assignedId && p.email?.toLowerCase() !== cleanEmail), newProfile];
+        const updatedStudents = [...(parsed.students || students).filter((s: any) => s.user_id !== assignedId), newStudent];
         localStorage.setItem(
           STORAGE_KEY,
           JSON.stringify({
@@ -687,8 +771,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             students: updatedStudents,
           })
         );
-        sessionStorage.setItem(CURRENT_USER_KEY, newId);
-        localStorage.setItem(CURRENT_USER_KEY, newId);
+        sessionStorage.setItem(CURRENT_USER_KEY, assignedId);
+        localStorage.setItem(CURRENT_USER_KEY, assignedId);
       } catch {}
     }
 
@@ -708,48 +792,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
 
-    // Save DIRECTLY to Supabase Database Tables with await
-    try {
-      const supabase = createClient();
-      console.log('Writing student registration to Supabase database...', newId, email);
-
-      const profileRes = await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
-      if (profileRes.error) console.error('Supabase profile insert error:', profileRes.error);
-      else console.log('Supabase profile saved successfully');
-
-      const stuRes = await supabase.from('student_profiles').upsert([{
-        user_id: newStudent.user_id,
-        full_name: newStudent.full_name,
-        school: newStudent.school,
-        graduation_year: newStudent.graduation_year,
-        skills: newStudent.skills,
-        availability_hours_per_week: newStudent.availability_hours_per_week,
-        bio: newStudent.bio,
-        portfolio_urls: newStudent.portfolio_urls,
-        avatar_url: newStudent.avatar_url,
-        is_public: newStudent.is_public
-      }], { onConflict: 'user_id' });
-      if (stuRes.error) console.error('Supabase student_profile insert error:', stuRes.error);
-      else console.log('Supabase student profile saved successfully');
-
-      // Global Supabase Realtime broadcast for instant cross-device admin notification
-      const channel = supabase.channel('studentconnect_global_sync');
-      channel.send({
-        type: 'broadcast',
-        event: 'ACCOUNT_REGISTERED',
-        payload: { profile: newProfile, student: newStudent, id: newId, role: 'student', email }
-      }).catch(() => {});
-
-      // Background auth sign-up (optional)
-      supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password: 'Password123!',
-      }).catch(() => {});
-    } catch (err) {
-      console.warn('Could not sync registration to Supabase:', err);
+    // Direct Supabase upsert fallback if server was not reached
+    if (!registeredProfile) {
+      try {
+        const supabase = createClient();
+        await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+        await supabase.from('student_profiles').upsert([newStudent], { onConflict: 'user_id' });
+      } catch (err) {
+        console.warn('Direct fallback registration notice:', err);
+      }
     }
 
-    return newId;
+    // Trigger immediate refresh so admin queues reflect the new signup
+    refreshData().catch(() => {});
+
+    return assignedId;
   };
 
   const registerBusiness = async (
@@ -759,13 +816,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     size: string,
     location: string,
     description: string,
-    websiteUrl?: string
+    websiteUrl?: string,
+    password?: string
   ): Promise<string> => {
-    const newId = generateUUID();
+    const cleanEmail = email.trim().toLowerCase();
 
-    const newProfile: Profile = {
-      id: newId,
-      email: email.trim().toLowerCase(),
+    // 1. Authoritative Server Registration Call
+    let registeredProfile: Profile | null = null;
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          password: password || 'Password123!',
+          role: 'business',
+          businessName,
+          industry,
+          businessSize: size,
+          location,
+          description,
+          websiteUrl,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+      if (data.profile) {
+        registeredProfile = data.profile;
+      }
+    } catch (apiErr: any) {
+      console.warn('Server registration notice:', apiErr);
+      if (apiErr.message && !apiErr.message.includes('fetch')) {
+        throw apiErr;
+      }
+    }
+
+    const assignedId = registeredProfile?.id || generateUUID();
+    const newProfile: Profile = registeredProfile || {
+      id: assignedId,
+      email: cleanEmail,
       role: 'business',
       status: 'pending_approval',
       created_at: new Date().toISOString(),
@@ -773,7 +865,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     const newBusiness: BusinessProfile = {
-      user_id: newId,
+      user_id: assignedId,
       business_name: businessName,
       industry,
       business_size: size,
@@ -781,21 +873,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       description,
       website_url: websiteUrl,
       logo_url: `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&auto=format&fit=crop&q=80`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: newProfile.created_at,
+      updated_at: newProfile.updated_at,
     };
 
-    setProfiles((prev) => [...prev.filter((p) => p.id !== newId), newProfile]);
-    setBusinesses((prev) => [...prev.filter((b) => b.user_id !== newId), newBusiness]);
-    setCurrentUserId(newId);
+    setProfiles((prev) => [...prev.filter((p) => p.id !== assignedId && p.email.toLowerCase() !== cleanEmail), newProfile]);
+    setBusinesses((prev) => [...prev.filter((b) => b.user_id !== assignedId), newBusiness]);
+    setCurrentUserId(assignedId);
 
     // Immediate LocalStorage persist for instant availability across tabs and reloads
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         const parsed = saved ? JSON.parse(saved) : {};
-        const updatedProfiles = [...(parsed.profiles || profiles).filter((p: any) => p.id !== newId), newProfile];
-        const updatedBusinesses = [...(parsed.businesses || businesses).filter((b: any) => b.user_id !== newId), newBusiness];
+        const updatedProfiles = [...(parsed.profiles || profiles).filter((p: any) => p.id !== assignedId && p.email?.toLowerCase() !== cleanEmail), newProfile];
+        const updatedBusinesses = [...(parsed.businesses || businesses).filter((b: any) => b.user_id !== assignedId), newBusiness];
         localStorage.setItem(
           STORAGE_KEY,
           JSON.stringify({
@@ -804,8 +896,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             businesses: updatedBusinesses,
           })
         );
-        sessionStorage.setItem(CURRENT_USER_KEY, newId);
-        localStorage.setItem(CURRENT_USER_KEY, newId);
+        sessionStorage.setItem(CURRENT_USER_KEY, assignedId);
+        localStorage.setItem(CURRENT_USER_KEY, assignedId);
       } catch {}
     }
 
@@ -825,51 +917,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
 
-    // Save DIRECTLY to Supabase Database Tables with await
-    try {
-      const supabase = createClient();
-      console.log('Writing business registration to Supabase database...', newId, email);
-
-      const profileRes = await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
-      if (profileRes.error) console.error('Supabase profile insert error:', profileRes.error);
-      else console.log('Supabase business profile saved successfully');
-
-      const bizRes = await supabase.from('business_profiles').upsert([{
-        user_id: newBusiness.user_id,
-        business_name: newBusiness.business_name,
-        industry: newBusiness.industry,
-        business_size: newBusiness.business_size,
-        location: newBusiness.location,
-        description: newBusiness.description,
-        website_url: newBusiness.website_url,
-        logo_url: newBusiness.logo_url
-      }], { onConflict: 'user_id' });
-      if (bizRes.error) console.error('Supabase business_profile insert error:', bizRes.error);
-      else console.log('Supabase business profile saved successfully');
-
-      // Global Supabase Realtime broadcast for instant cross-device admin notification
-      const channel = supabase.channel('studentconnect_global_sync');
-      channel.send({
-        type: 'broadcast',
-        event: 'ACCOUNT_REGISTERED',
-        payload: { profile: newProfile, business: newBusiness, id: newId, role: 'business', email }
-      }).catch(() => {});
-
-      // Background auth sign-up (optional)
-      supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password: 'Password123!',
-      }).catch(() => {});
-    } catch (err) {
-      console.warn('Could not sync business registration to Supabase:', err);
+    // Direct Supabase upsert fallback if server was not reached
+    if (!registeredProfile) {
+      try {
+        const supabase = createClient();
+        await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+        await supabase.from('business_profiles').upsert([newBusiness], { onConflict: 'user_id' });
+      } catch (err) {
+        console.warn('Direct fallback registration notice:', err);
+      }
     }
 
-    return newId;
+    // Trigger immediate refresh so admin queues reflect the new signup
+    refreshData().catch(() => {});
+
+    return assignedId;
   };
 
   const createProject = (projectData: Omit<Project, 'id' | 'business_id' | 'status' | 'created_at' | 'updated_at'>) => {
     if (!currentUser || currentUser.role !== 'business') {
       throw new Error('Only approved businesses can post projects');
+    }
+    if (currentUser.status === 'pending_approval') {
+      throw new Error('Your client business account is pending administrator verification.');
+    }
+    if (currentUser.status === 'rejected') {
+      throw new Error('Your client business account has been rejected. Posting projects is restricted.');
     }
 
     const newProject: Project = {
@@ -896,6 +969,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const applyToProject = (projectId: string, pitchNote: string) => {
     if (!currentUser || currentUser.role !== 'student') {
       throw new Error('Only students can apply to projects');
+    }
+    if (currentUser.status === 'pending_approval') {
+      throw new Error('Your student account is pending administrator verification.');
+    }
+    if (currentUser.status === 'rejected') {
+      throw new Error('Your student account has been rejected. Applications are restricted.');
     }
 
     const newApp: Application = {
@@ -1261,10 +1340,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const approveUser = (userId: string) => {
+  const approveUser = async (userId: string) => {
+    // 1. Optimistic update in state
     setProfiles((prev) => prev.map((p) => (p.id === userId ? { ...p, status: 'approved', updated_at: new Date().toISOString() } : p)));
 
-    // Immediate LocalStorage persist
+    // 2. Immediate LocalStorage persist
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
@@ -1276,7 +1356,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch {}
     }
 
-    // Instant BroadcastChannel sync
+    // 3. Instant BroadcastChannel sync
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('studentconnect_chat_channel');
@@ -1285,10 +1365,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
 
-    // Cloud DB sync & Realtime Broadcast
+    // 4. Cloud DB sync via Server API & direct Supabase fallback
+    try {
+      const adminSecret = (typeof window !== 'undefined' && localStorage.getItem('studentconnect_admin_secret')) || 'Admin@StudentConnect2025!';
+      await fetch('/api/admin/user-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': adminSecret,
+        },
+        body: JSON.stringify({ userId, status: 'approved' }),
+      });
+    } catch {
+      try {
+        const supabase = createClient();
+        await supabase.from('profiles').update({ status: 'approved', updated_at: new Date().toISOString() }).eq('id', userId);
+      } catch {}
+    }
+
     try {
       const supabase = createClient();
-      supabase.from('profiles').update({ status: 'approved', updated_at: new Date().toISOString() }).eq('id', userId).then(() => {});
       const channel = supabase.channel('studentconnect_global_sync');
       channel.send({
         type: 'broadcast',
@@ -1296,49 +1392,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         payload: { id: userId, status: 'approved' }
       }).catch(() => {});
     } catch {}
+
+    refreshData().catch(() => {});
   };
 
-  const rejectUser = (userId: string) => {
-    setProfiles((prev) => prev.filter((p) => p.id !== userId));
-    setStudents((prev) => prev.filter((s) => s.user_id !== userId));
-    setBusinesses((prev) => prev.filter((b) => b.user_id !== userId));
-    setProjects((prev) => prev.filter((p) => p.business_id !== userId));
+  const rejectUser = async (userId: string) => {
+    // 1. Optimistic update to 'rejected' (DO NOT DELETE THE USER RECORD)
+    setProfiles((prev) => prev.map((p) => (p.id === userId ? { ...p, status: 'rejected', updated_at: new Date().toISOString() } : p)));
 
-    // Immediate LocalStorage persist
+    // 2. Immediate LocalStorage persist
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify({
-              ...parsed,
-              profiles: (parsed.profiles || []).filter((p: any) => p.id !== userId),
-              students: (parsed.students || []).filter((s: any) => s.user_id !== userId),
-              businesses: (parsed.businesses || []).filter((b: any) => b.user_id !== userId),
-              projects: (parsed.projects || []).filter((p: any) => p.business_id !== userId),
-            })
-          );
+          const updated = (parsed.profiles || []).map((p: any) => p.id === userId ? { ...p, status: 'rejected', updated_at: new Date().toISOString() } : p);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, profiles: updated }));
         }
       } catch {}
     }
 
-    // Instant BroadcastChannel sync
+    // 3. Instant BroadcastChannel sync
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('studentconnect_chat_channel');
-        bc.postMessage({ type: 'USER_DELETED', userId });
+        bc.postMessage({ type: 'USER_STATUS_CHANGE', userId, status: 'rejected' });
         setTimeout(() => { try { bc.close(); } catch {} }, 500);
       }
     } catch {}
 
-    // Cloud DB delete & Realtime Broadcast
+    // 4. Cloud DB sync via Server API & direct Supabase fallback
+    try {
+      const adminSecret = (typeof window !== 'undefined' && localStorage.getItem('studentconnect_admin_secret')) || 'Admin@StudentConnect2025!';
+      await fetch('/api/admin/user-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': adminSecret,
+        },
+        body: JSON.stringify({ userId, status: 'rejected' }),
+      });
+    } catch {
+      try {
+        const supabase = createClient();
+        await supabase.from('profiles').update({ status: 'rejected', updated_at: new Date().toISOString() }).eq('id', userId);
+      } catch {}
+    }
+
     try {
       const supabase = createClient();
-      supabase.from('profiles').delete().eq('id', userId).then(() => {});
-      supabase.from('student_profiles').delete().eq('user_id', userId).then(() => {});
-      supabase.from('business_profiles').delete().eq('user_id', userId).then(() => {});
       const channel = supabase.channel('studentconnect_global_sync');
       channel.send({
         type: 'broadcast',
@@ -1346,9 +1448,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         payload: { id: userId, status: 'rejected' }
       }).catch(() => {});
     } catch {}
+
+    refreshData().catch(() => {});
   };
 
-  const resetUserToPending = (userId: string) => {
+  const resetUserToPending = async (userId: string) => {
     setProfiles((prev) => prev.map((p) => (p.id === userId ? { ...p, status: 'pending_approval', updated_at: new Date().toISOString() } : p)));
 
     if (typeof window !== 'undefined') {
@@ -1371,8 +1475,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {}
 
     try {
+      const adminSecret = (typeof window !== 'undefined' && localStorage.getItem('studentconnect_admin_secret')) || 'Admin@StudentConnect2025!';
+      await fetch('/api/admin/user-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': adminSecret,
+        },
+        body: JSON.stringify({ userId, status: 'pending_approval' }),
+      });
+    } catch {
+      try {
+        const supabase = createClient();
+        await supabase.from('profiles').update({ status: 'pending_approval', updated_at: new Date().toISOString() }).eq('id', userId);
+      } catch {}
+    }
+
+    try {
       const supabase = createClient();
-      supabase.from('profiles').update({ status: 'pending_approval', updated_at: new Date().toISOString() }).eq('id', userId).then(() => {});
       const channel = supabase.channel('studentconnect_global_sync');
       channel.send({
         type: 'broadcast',
@@ -1380,6 +1500,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         payload: { id: userId, status: 'pending_approval' }
       }).catch(() => {});
     } catch {}
+
+    refreshData().catch(() => {});
   };
 
   const approveProject = (projectId: string) => {

@@ -10,7 +10,8 @@ import {
   ShieldCheck,
   Check,
   Eye,
-  EyeOff
+  EyeOff,
+  AlertCircle
 } from 'lucide-react';
 import { LogoIcon } from '@/components/ui/LogoIcon';
 
@@ -49,23 +50,27 @@ function RegisterForm() {
   const [websiteUrl, setWebsiteUrl] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setErrorMsg('');
 
     try {
       if (role === 'student') {
         const skillsArray = skills.split(',').map((s) => s.trim()).filter(Boolean);
         const portfolioArray = portfolioUrl ? [portfolioUrl] : [];
-        await registerStudent(email, fullName, school, gradYear, skillsArray, hours, bio, portfolioArray);
+        await registerStudent(email, fullName, school, gradYear, skillsArray, hours, bio, portfolioArray, password);
         router.push('/student/dashboard');
       } else {
-        await registerBusiness(email, businessName, industry, businessSize, location, description, websiteUrl);
+        await registerBusiness(email, businessName, industry, businessSize, location, description, websiteUrl, password);
         router.push('/business/dashboard');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Registration error:', err);
+      const msg = err instanceof Error ? err.message : 'Registration failed. Please check your details and try again.';
+      setErrorMsg(msg);
       setIsSubmitting(false);
     }
   };
@@ -135,6 +140,13 @@ function RegisterForm() {
         onSubmit={handleSubmit}
         className="bg-white rounded-3xl p-8 border border-[#E5DFD5] shadow-xs space-y-6"
       >
+        {errorMsg && (
+          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <div>{errorMsg}</div>
+          </div>
+        )}
+
         <h2 className="text-base font-black text-[#111C16]">
           {role === 'student' ? 'Student Profile Setup' : 'Business Organization Setup'}
         </h2>

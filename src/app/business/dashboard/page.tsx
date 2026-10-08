@@ -104,6 +104,55 @@ export default function BusinessDashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+      {/* Account Verification Status Banners */}
+      {currentUser.status === 'pending_approval' && (
+        <div className="bg-amber-50 border-2 border-amber-300 p-6 rounded-3xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 font-bold flex items-center justify-center shrink-0">
+              <Clock className="w-6 h-6 text-amber-600 animate-pulse" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider text-amber-800">
+                <span>Account Verification Pending</span>
+              </div>
+              <h3 className="font-extrabold text-base text-stone-900">
+                Your business organization is currently awaiting administrator verification
+              </h3>
+              <p className="text-xs text-stone-600 font-medium mt-0.5">
+                Our team reviews small business accounts to ensure authenticity and maintain safety for our student network. You will be notified once approved!
+              </p>
+            </div>
+          </div>
+          <span className="px-3.5 py-1.5 rounded-full bg-amber-200/80 text-amber-900 text-xs font-bold shrink-0 text-center">
+            Pending Moderation
+          </span>
+        </div>
+      )}
+
+      {currentUser.status === 'rejected' && (
+        <div className="bg-rose-50 border-2 border-rose-300 p-6 rounded-3xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-rose-100 text-rose-700 font-bold flex items-center justify-center shrink-0">
+              <Clock className="w-6 h-6 text-rose-600" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider text-rose-800">
+                <span>Account Status: Rejected</span>
+              </div>
+              <h3 className="font-extrabold text-base text-stone-900">
+                Your business account was rejected during administrator review
+              </h3>
+              <p className="text-xs text-stone-600 font-medium mt-0.5">
+                Posting projects and accessing student profiles are restricted. Please contact our support team for more details.
+              </p>
+            </div>
+          </div>
+          <span className="px-3.5 py-1.5 rounded-full bg-rose-200 text-rose-900 text-xs font-bold shrink-0 text-center">
+            Access Restricted
+          </span>
+        </div>
+      )}
+
       {/* Business Welcome Banner */}
       <div className="bg-[#FAF7F2] rounded-3xl p-8 border border-[#E5DFD5] shadow-xs relative overflow-hidden">
         <div className="max-w-2xl relative z-10 space-y-3">
