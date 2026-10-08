@@ -6,30 +6,22 @@ import Link from 'next/link';
 import { useApp } from '@/lib/store';
 import { Button } from '@/components/ui/Button';
 import {
-  GraduationCap,
-  Building,
-  UserCheck,
   AlertCircle,
   Loader2,
   Eye,
-  EyeOff
+  EyeOff,
+  ShieldCheck
 } from 'lucide-react';
 import { LogoIcon } from '@/components/ui/LogoIcon';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { loginAsRole, loginWithEmail } = useApp();
+  const { loginWithEmail } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-
-  const handleDemoLogin = (role: 'student' | 'business') => {
-    loginAsRole(role);
-    if (role === 'student') router.push('/student/dashboard');
-    else router.push('/business/dashboard');
-  };
 
   const handleFormLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,12 +38,12 @@ export default function LoginPage() {
         } else if (user.role === 'business') {
           router.push('/business/dashboard');
         } else if (user.role === 'admin') {
-          router.push('/admin/reports');
+          router.push('/admin/dashboard');
         } else {
           router.push('/student/dashboard');
         }
       } else {
-        setErrorMsg('No registered profile found for this email. Please click "Register Free" below to create your account in the database!');
+        setErrorMsg('No registered account found for this email. Please register below to create your account!');
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Login failed';
@@ -71,52 +63,8 @@ export default function LoginPage() {
           Welcome to StudentConnect
         </h1>
         <p className="text-xs text-stone-500 font-medium">
-          Access your workspaces, projects, or applications.
+          Access your workspaces, projects, or client dashboard.
         </p>
-      </div>
-
-      {/* Quick Demo Sign In Box */}
-      <div className="p-5 rounded-3xl bg-[#FAF7F2] border border-[#E5DFD5] space-y-3">
-        <div className="text-xs font-black text-[#0D3D2B] flex items-center gap-1.5">
-          <UserCheck className="w-4 h-4 text-[#16563D]" />
-          Quick Demo Persona Login
-        </div>
-        <p className="text-[11px] text-stone-600 font-medium">
-          Click any persona to test with full sample data:
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={() => handleDemoLogin('student')}
-            className="text-[11px] py-2"
-          >
-            <GraduationCap className="w-3.5 h-3.5 mr-1" />
-            Sarah (Student)
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={async () => {
-              setLoading(true);
-              await loginWithEmail('nextphase');
-              router.push('/business/dashboard');
-            }}
-            className="text-[11px] py-2 font-bold bg-[#0D3D2B] text-white hover:bg-[#08281A]"
-          >
-            <Building className="w-3.5 h-3.5 mr-1" />
-            nextphase (Client)
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleDemoLogin('business')}
-            className="text-[11px] py-2 font-bold"
-          >
-            <Building className="w-3.5 h-3.5 mr-1" />
-            Bakery Client
-          </Button>
-        </div>
       </div>
 
       {/* Standard Form */}
@@ -143,14 +91,14 @@ export default function LoginPage() {
 
         <div>
           <label className="block text-xs font-bold text-stone-800 mb-1">
-            Email or Client ID (e.g. nextphase)
+            Email Address or Username
           </label>
           <input
             type="text"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="nextphase or you@example.com"
+            placeholder="you@example.com"
             className="w-full text-xs p-3 rounded-2xl border border-stone-200 bg-[#FAF7F2] text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
           />
         </div>
@@ -172,8 +120,8 @@ export default function LoginPage() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 transition-colors p-1 cursor-pointer"
-              title={showPassword ? "Hide password" : "Show password"}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? (
                 <EyeOff className="w-4 h-4" />
@@ -184,7 +132,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <Button type="submit" variant="primary" size="lg" className="w-full" disabled={loading}>
+        <Button type="submit" variant="primary" size="lg" className="w-full font-bold" disabled={loading}>
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin" /> Signing in...
@@ -194,15 +142,16 @@ export default function LoginPage() {
           )}
         </Button>
 
-        <div className="text-center text-xs text-stone-500 pt-2 font-medium space-y-2">
+        <div className="text-center text-xs text-stone-500 pt-2 font-medium space-y-3">
           <div>
             Don&apos;t have an account yet?{' '}
             <Link href="/register" className="text-[#0D3D2B] font-black hover:underline">
               Register Free
             </Link>
           </div>
-          <div className="pt-2 border-t border-stone-100">
-            <Link href="/admin/login" className="text-stone-400 hover:text-amber-700 text-[11px] font-semibold transition-colors">
+          <div className="pt-3 border-t border-stone-100 flex items-center justify-center">
+            <Link href="/admin/login" className="text-stone-400 hover:text-amber-800 text-[11px] font-semibold transition-colors flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
               Staff & Administrator Sign In →
             </Link>
           </div>

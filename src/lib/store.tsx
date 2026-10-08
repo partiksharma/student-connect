@@ -222,9 +222,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const savedUserId = sessionStorage.getItem(CURRENT_USER_KEY) || localStorage.getItem(CURRENT_USER_KEY);
       if (savedUserId) {
         setCurrentUserId(savedUserId);
-      } else {
-        // Default to demo student if no saved session
-        setCurrentUserId('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
       }
     } catch {}
 
@@ -484,6 +481,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithEmail = async (emailOrId: string, password?: string): Promise<Profile | null> => {
     const cleanInput = emailOrId.trim().toLowerCase();
+
+    // Check for administrator login
+    if (cleanInput === 'admin' || cleanInput === 'admin@studentconnect.org' || cleanInput === 'admin@studentconnect.com') {
+      let adminProfile = profiles.find((p) => p.role === 'admin' || p.email === 'admin@studentconnect.org');
+      if (!adminProfile) {
+        adminProfile = {
+          id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          email: 'admin@studentconnect.org',
+          role: 'admin',
+          status: 'approved',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setProfiles((prev) => [...prev, adminProfile!]);
+      }
+      setCurrentUserId(adminProfile.id);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(CURRENT_USER_KEY, adminProfile.id);
+        sessionStorage.setItem(CURRENT_USER_KEY, adminProfile.id);
+      }
+      return adminProfile;
+    }
 
     if (password) {
       try {

@@ -85,18 +85,15 @@ export default function AdminLayout({
           </div>
 
           <div className="space-y-3 pt-2">
-            <button
-              onClick={() => {
-                loginAsRole('admin');
-                router.push('/admin/dashboard');
-              }}
-              className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors cursor-pointer shadow-lg shadow-amber-500/20"
+            <Link
+              href="/admin/login"
+              className="block w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors cursor-pointer shadow-lg shadow-amber-500/20 text-center"
             >
-              Authenticate as Platform Admin
-            </button>
+              Sign In to Admin Portal →
+            </Link>
             <Link
               href="/"
-              className="block w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors"
+              className="block w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors text-center"
             >
               ← Return to Main Website
             </Link>

@@ -51,7 +51,7 @@ export const INITIAL_PROFILES: Profile[] = [
   },
   {
     id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    email: 'admin@platform.internal',
+    email: 'admin@studentconnect.org',
     role: 'admin',
     status: 'approved',
     created_at: new Date(Date.now() - 100 * 86400000).toISOString(),
