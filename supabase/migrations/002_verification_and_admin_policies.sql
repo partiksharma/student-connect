@@ -237,6 +237,20 @@ BEGIN
     END IF;
 END $$;
 
+-- Allow public select on projects so open projects are readable by students
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'projects' AND policyname = 'Public can view open projects'
+    ) THEN
+        EXECUTE $policy$
+            CREATE POLICY "Public can view open projects" ON public.projects
+                FOR SELECT USING (status = 'open' OR public.is_admin());
+        $policy$;
+    END IF;
+END $$;
+
 
 -- ==============================================================================
 -- 5. Index for faster admin queries on profiles by status

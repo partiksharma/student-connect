@@ -226,8 +226,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const supabase = createClient();
-        const { data: dbProjects } = await supabase.from('projects').select('*');
+        let dbProjects: Project[] | null = null;
+        try {
+          const apiRes = await fetch('/api/projects');
+          if (apiRes.ok) {
+            const apiData = await apiRes.json();
+            if (apiData.projects) dbProjects = apiData.projects;
+          }
+        } catch {}
+
+        if (!dbProjects) {
+          const supabase = createClient();
+          const { data: pData } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+          dbProjects = pData as Project[] | null;
+        }
+
         if (dbProjects && dbProjects.length > 0) {
           setProjects((prev) => mergeById(prev, dbProjects as Project[], 'id'));
         }
@@ -984,18 +997,79 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Your client business account has been rejected. Posting projects is restricted.');
     }
 
+    // Approved business accounts publish projects live ('open') immediately for student applicants
+    const targetStatus: ProjectStatus = currentUser.status === 'approved' ? 'open' : 'pending_approval';
+
+    const tempId = `proj-${Date.now()}`;
     const newProject: Project = {
       ...projectData,
-      id: `proj-${Date.now()}`,
+      id: tempId,
       business_id: currentUser.id,
-      status: 'pending_approval',
+      status: targetStatus,
       applicant_count: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       business: currentBusiness || undefined,
     };
 
+    // Optimistically update React Context state
     setProjects((prev) => [newProject, ...prev]);
+
+    // Save to server API & Supabase database
+    fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: projectData.title,
+        category: projectData.category,
+        description: projectData.description,
+        deliverables_description: projectData.deliverables_description,
+        skills_required: projectData.skills_required,
+        estimated_hours_per_week: projectData.estimated_hours_per_week,
+        duration_weeks: projectData.duration_weeks,
+        business_id: currentUser.id,
+        status: targetStatus,
+        perks: projectData.perks,
+      }),
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          if (data.project) {
+            setProjects((prev) =>
+              prev.map((p) => (p.id === tempId ? { ...data.project, business: currentBusiness || data.project.business } : p))
+            );
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Notice saving project to database:', err);
+      })
+      .finally(() => {
+        refreshData().catch(() => {});
+      });
+
+    // Immediate LocalStorage persist
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const updatedProjects = [newProject, ...(parsed.projects || []).filter((p: any) => p.id !== tempId)];
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, projects: updatedProjects }));
+        }
+      } catch {}
+    }
+
+    // Instant BroadcastChannel sync across tabs/windows
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('studentconnect_chat_channel');
+        bc.postMessage({ type: 'PROJECT_STATUS_CHANGE', project: newProject });
+        setTimeout(() => { try { bc.close(); } catch {} }, 500);
+      }
+    } catch {}
+
     return newProject;
   };
 
