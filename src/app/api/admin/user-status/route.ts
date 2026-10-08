@@ -42,9 +42,8 @@ export async function POST(req: Request) {
         status: targetStatus,
         updated_at: now,
       })
-      .eq('id', userId)
-      .select()
-      .single();
+      .or(`id.eq.${userId},email.eq.${userId.toLowerCase()}`)
+      .select();
 
     if (error) {
       console.error('Failed to update user status in database:', error);
@@ -56,7 +55,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      profile: data,
+      profiles: data,
       message: `User status successfully updated to ${targetStatus}`,
     });
   } catch (err: unknown) {

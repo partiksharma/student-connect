@@ -187,20 +187,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // 2. Authoritative sync from Supabase Cloud DB
+    // 2. Authoritative sync from Supabase Cloud DB via Server API & direct Supabase fallback
     try {
-      const supabase = createClient();
-      const [
-        { data: dbProfiles },
-        { data: dbStudents },
-        { data: dbBiz },
-        { data: dbProjects }
-      ] = await Promise.all([
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-        supabase.from('student_profiles').select('*'),
-        supabase.from('business_profiles').select('*'),
-        supabase.from('projects').select('*')
-      ]);
+      let dbProfiles: Profile[] | null = null;
+      let dbStudents: StudentProfile[] | null = null;
+      let dbBiz: BusinessProfile[] | null = null;
+
+      try {
+        const apiRes = await fetch('/api/auth/profiles');
+        if (apiRes.ok) {
+          const apiData = await apiRes.json();
+          if (apiData.profiles) dbProfiles = apiData.profiles;
+          if (apiData.students) dbStudents = apiData.students;
+          if (apiData.businesses) dbBiz = apiData.businesses;
+        }
+      } catch {}
+
+      if (!dbProfiles) {
+        const supabase = createClient();
+        const [{ data: pData }, { data: sData }, { data: bData }] = await Promise.all([
+          supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+          supabase.from('student_profiles').select('*'),
+          supabase.from('business_profiles').select('*'),
+        ]);
+        dbProfiles = pData as Profile[] | null;
+        dbStudents = sData as StudentProfile[] | null;
+        dbBiz = bData as BusinessProfile[] | null;
+      }
 
       if (dbProfiles && dbProfiles.length > 0) {
         setProfiles((prev) => mergeById(prev, dbProfiles as Profile[], 'id'));
@@ -211,9 +224,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (dbBiz && dbBiz.length > 0) {
         setBusinesses((prev) => mergeById(prev, dbBiz as BusinessProfile[], 'user_id'));
       }
-      if (dbProjects && dbProjects.length > 0) {
-        setProjects((prev) => mergeById(prev, dbProjects as Project[], 'id'));
-      }
+
+      try {
+        const supabase = createClient();
+        const { data: dbProjects } = await supabase.from('projects').select('*');
+        if (dbProjects && dbProjects.length > 0) {
+          setProjects((prev) => mergeById(prev, dbProjects as Project[], 'id'));
+        }
+      } catch {}
     } catch (err) {
       console.warn('Could not sync remote Supabase records:', err);
     }
@@ -459,7 +477,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [isInitialized, profiles, students, businesses, projects, applications, workspaces, feedbackList, reports, notifications, currentUserId]);
 
   // Treat currentUser as null until hydration is done to prevent server/client mismatch
-  const currentUser = isInitialized ? (profiles.find((p) => p.id === currentUserId) || null) : null;
+  const currentUser = isInitialized
+    ? profiles.find(
+        (p) =>
+          p.id === currentUserId ||
+          (p.email && currentUserId && p.email.toLowerCase() === currentUserId.toLowerCase())
+      ) || null
+    : null;
 
   // Student profile lookup with exact match preservation
   const rawStudent = students.find((s) => s.user_id === currentUserId || (currentUser && s.user_id === currentUser.id));
@@ -559,19 +583,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Always check authoritative Supabase cloud database first for the latest profile state and verification status
     let existingProfile: Profile | null = null;
     try {
-      const supabase = createClient();
-      const { data: dbProfile } = await supabase
-        .from('profiles')
-        .select('*')
-        .or(`email.eq.${cleanInput},id.eq.${cleanInput}`)
-        .maybeSingle();
-
-      if (dbProfile) {
-        existingProfile = dbProfile as Profile;
-        setProfiles((prev) => mergeById(prev, [dbProfile as Profile], 'id'));
+      const apiRes = await fetch(`/api/auth/profiles?email=${encodeURIComponent(cleanInput)}`);
+      if (apiRes.ok) {
+        const apiData = await apiRes.json();
+        if (apiData.profile) {
+          existingProfile = apiData.profile as Profile;
+          setProfiles((prev) => mergeById(prev, [apiData.profile], 'id'));
+          if (apiData.student) setStudents((prev) => mergeById(prev, [apiData.student], 'user_id'));
+          if (apiData.business) setBusinesses((prev) => mergeById(prev, [apiData.business], 'user_id'));
+        }
       }
-    } catch (err) {
-      console.warn('Notice querying Supabase during login:', err);
+    } catch {}
+
+    if (!existingProfile) {
+      try {
+        const supabase = createClient();
+        const { data: dbProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .or(`email.eq.${cleanInput},id.eq.${cleanInput}`)
+          .maybeSingle();
+
+        if (dbProfile) {
+          existingProfile = dbProfile as Profile;
+          setProfiles((prev) => mergeById(prev, [dbProfile as Profile], 'id'));
+        }
+      } catch (err) {
+        console.warn('Notice querying Supabase during login:', err);
+      }
     }
 
     // Fallback to local profiles list if database was offline or reached by alias
@@ -1341,8 +1380,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const approveUser = async (userId: string) => {
+    const isMatch = (p: any) => p.id === userId || (p.email && p.email.toLowerCase() === userId.toLowerCase());
+
     // 1. Optimistic update in state
-    setProfiles((prev) => prev.map((p) => (p.id === userId ? { ...p, status: 'approved', updated_at: new Date().toISOString() } : p)));
+    setProfiles((prev) => prev.map((p) => (isMatch(p) ? { ...p, status: 'approved', updated_at: new Date().toISOString() } : p)));
 
     // 2. Immediate LocalStorage persist
     if (typeof window !== 'undefined') {
@@ -1350,7 +1391,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          const updated = (parsed.profiles || []).map((p: any) => p.id === userId ? { ...p, status: 'approved', updated_at: new Date().toISOString() } : p);
+          const updated = (parsed.profiles || []).map((p: any) => isMatch(p) ? { ...p, status: 'approved', updated_at: new Date().toISOString() } : p);
           localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, profiles: updated }));
         }
       } catch {}
@@ -1379,7 +1420,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {
       try {
         const supabase = createClient();
-        await supabase.from('profiles').update({ status: 'approved', updated_at: new Date().toISOString() }).eq('id', userId);
+        await supabase.from('profiles').update({ status: 'approved', updated_at: new Date().toISOString() }).or(`id.eq.${userId},email.eq.${userId.toLowerCase()}`);
       } catch {}
     }
 
@@ -1397,8 +1438,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const rejectUser = async (userId: string) => {
+    const isMatch = (p: any) => p.id === userId || (p.email && p.email.toLowerCase() === userId.toLowerCase());
+
     // 1. Optimistic update to 'rejected' (DO NOT DELETE THE USER RECORD)
-    setProfiles((prev) => prev.map((p) => (p.id === userId ? { ...p, status: 'rejected', updated_at: new Date().toISOString() } : p)));
+    setProfiles((prev) => prev.map((p) => (isMatch(p) ? { ...p, status: 'rejected', updated_at: new Date().toISOString() } : p)));
 
     // 2. Immediate LocalStorage persist
     if (typeof window !== 'undefined') {
@@ -1406,7 +1449,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          const updated = (parsed.profiles || []).map((p: any) => p.id === userId ? { ...p, status: 'rejected', updated_at: new Date().toISOString() } : p);
+          const updated = (parsed.profiles || []).map((p: any) => isMatch(p) ? { ...p, status: 'rejected', updated_at: new Date().toISOString() } : p);
           localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, profiles: updated }));
         }
       } catch {}
@@ -1435,7 +1478,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {
       try {
         const supabase = createClient();
-        await supabase.from('profiles').update({ status: 'rejected', updated_at: new Date().toISOString() }).eq('id', userId);
+        await supabase.from('profiles').update({ status: 'rejected', updated_at: new Date().toISOString() }).or(`id.eq.${userId},email.eq.${userId.toLowerCase()}`);
       } catch {}
     }
 
@@ -1453,14 +1496,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetUserToPending = async (userId: string) => {
-    setProfiles((prev) => prev.map((p) => (p.id === userId ? { ...p, status: 'pending_approval', updated_at: new Date().toISOString() } : p)));
+    const isMatch = (p: any) => p.id === userId || (p.email && p.email.toLowerCase() === userId.toLowerCase());
+
+    setProfiles((prev) => prev.map((p) => (isMatch(p) ? { ...p, status: 'pending_approval', updated_at: new Date().toISOString() } : p)));
 
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          const updated = (parsed.profiles || []).map((p: any) => p.id === userId ? { ...p, status: 'pending_approval', updated_at: new Date().toISOString() } : p);
+          const updated = (parsed.profiles || []).map((p: any) => isMatch(p) ? { ...p, status: 'pending_approval', updated_at: new Date().toISOString() } : p);
           localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, profiles: updated }));
         }
       } catch {}
@@ -1487,7 +1532,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {
       try {
         const supabase = createClient();
-        await supabase.from('profiles').update({ status: 'pending_approval', updated_at: new Date().toISOString() }).eq('id', userId);
+        await supabase.from('profiles').update({ status: 'pending_approval', updated_at: new Date().toISOString() }).or(`id.eq.${userId},email.eq.${userId.toLowerCase()}`);
       } catch {}
     }
 

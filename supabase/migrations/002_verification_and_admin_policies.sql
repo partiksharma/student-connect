@@ -223,6 +223,21 @@ BEGIN
 END $$;
 
 
+-- Allow public read of profiles for status resolution across client & admin portals
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'profiles' AND policyname = 'Public can view profiles basic status'
+    ) THEN
+        EXECUTE $policy$
+            CREATE POLICY "Public can view profiles basic status" ON public.profiles
+                FOR SELECT USING (true);
+        $policy$;
+    END IF;
+END $$;
+
+
 -- ==============================================================================
 -- 5. Index for faster admin queries on profiles by status
 -- ==============================================================================
