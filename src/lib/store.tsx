@@ -245,6 +245,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setProjects((prev) => mergeById(prev, dbProjects as Project[], 'id'));
         }
       } catch {}
+
+      try {
+        let dbApps: Application[] | null = null;
+        try {
+          const apiRes = await fetch('/api/applications');
+          if (apiRes.ok) {
+            const apiData = await apiRes.json();
+            if (apiData.applications) dbApps = apiData.applications;
+          }
+        } catch {}
+
+        if (!dbApps) {
+          const supabase = createClient();
+          const { data: aData } = await supabase.from('applications').select('*').order('created_at', { ascending: false });
+          dbApps = aData as Application[] | null;
+        }
+
+        if (dbApps && dbApps.length > 0) {
+          setApplications((prev) => mergeById(prev, dbApps as Application[], 'id'));
+        }
+      } catch {}
     } catch (err) {
       console.warn('Could not sync remote Supabase records:', err);
     }
@@ -1090,22 +1111,95 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Your student account has been rejected. Applications are restricted.');
     }
 
+    // Prevent duplicate application submission to the same project
+    const alreadyApplied = applications.some((a) => a.project_id === projectId && a.student_id === currentUser.id);
+    if (alreadyApplied) {
+      throw new Error('You have already submitted an application for this project.');
+    }
+
+    const tempAppId = `app-${Date.now()}`;
     const newApp: Application = {
-      id: `app-${Date.now()}`,
+      id: tempAppId,
       project_id: projectId,
       student_id: currentUser.id,
       pitch_note: pitchNote,
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      student: currentStudent || undefined,
     };
 
-    setApplications((prev) => [...prev, newApp]);
-
-    // Increment project applicant counter
+    // Optimistically update applications and project applicant counter
+    setApplications((prev) => [newApp, ...prev]);
     setProjects((prev) =>
       prev.map((p) => (p.id === projectId ? { ...p, applicant_count: (p.applicant_count || 0) + 1 } : p))
     );
+
+    // Create a real-time Notification for the client business owner
+    const proj = projects.find((p) => p.id === projectId);
+    if (proj && proj.business_id) {
+      const studentName = currentStudent?.full_name || (currentUser.email ? currentUser.email.split('@')[0] : 'Student');
+      const appNotif: AppNotification = {
+        id: `notif-app-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        user_id: proj.business_id,
+        type: 'message',
+        title: '📩 New Student Application',
+        message: `${studentName} submitted an application for your project "${proj.title}".`,
+        project_id: proj.id,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      };
+
+      setNotifications((prev) => [appNotif, ...prev]);
+    }
+
+    // Save application to database via Server API
+    fetch('/api/applications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project_id: projectId,
+        student_id: currentUser.id,
+        pitch_note: pitchNote,
+      }),
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          if (data.application) {
+            setApplications((prev) =>
+              prev.map((a) => (a.id === tempAppId ? { ...data.application, student: currentStudent || data.application.student } : a))
+            );
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Notice saving application to database:', err);
+      })
+      .finally(() => {
+        refreshData().catch(() => {});
+      });
+
+    // Save to LocalStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const updatedApps = [newApp, ...(parsed.applications || []).filter((a: any) => a.id !== tempAppId)];
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, applications: updatedApps }));
+        }
+      } catch {}
+    }
+
+    // Broadcast sync across tabs/windows
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('studentconnect_chat_channel');
+        bc.postMessage({ type: 'APPLICATION_SUBMITTED', application: newApp });
+        setTimeout(() => { try { bc.close(); } catch {} }, 500);
+      }
+    } catch {}
 
     return newApp;
   };
@@ -1123,6 +1217,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setApplications((prev) =>
       prev.map((a) => (a.id === applicationId ? { ...a, status, updated_at: new Date().toISOString() } : a))
     );
+
+    // Save status update to database via Server API
+    fetch('/api/applications', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId, status }),
+    }).catch(() => {});
 
     const proj = projects.find((p) => p.id === app.project_id);
 
