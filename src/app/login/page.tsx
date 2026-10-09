@@ -104,9 +104,17 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-stone-800 mb-1">
-            Password
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs font-bold text-stone-800">
+              Password
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-[11px] font-bold text-[#0D3D2B] hover:underline"
+            >
+              Forgot Password?
+            </Link>
+          </div>
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}

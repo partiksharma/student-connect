@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSupabaseClient } from '@/lib/auth-server';
+import { getServerSupabaseClient, verifyAdminRequest } from '@/lib/auth-server';
 import { generateUUID } from '@/lib/utils';
 
 export async function GET(req: Request) {
@@ -155,3 +155,101 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const projectId = searchParams.get('id');
+    const userIdHeader = req.headers.get('x-user-id');
+    const userRoleHeader = req.headers.get('x-user-role');
+    const isAdmin = userRoleHeader === 'admin' || verifyAdminRequest(req);
+
+    if (!projectId) {
+      return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
+    }
+
+    const supabase = getServerSupabaseClient();
+
+    // 1. Fetch project to verify existence and check owner
+    const { data: project, error: fetchErr } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', projectId)
+      .maybeSingle();
+
+    if (fetchErr) {
+      console.warn('Error fetching project for deletion:', fetchErr);
+    }
+
+    if (!project) {
+      // If project is not in DB or was local only, return success
+      return NextResponse.json({ success: true, message: 'Project removed' });
+    }
+
+    // 2. Authorization check: ensure the caller is the business owner or admin
+    if (!isAdmin && userIdHeader && project.business_id !== userIdHeader) {
+      return NextResponse.json(
+        { error: 'Unauthorized: You can only delete your own projects.' },
+        { status: 403 }
+      );
+    }
+
+    // 3. Check for existing workspaces to preserve project deliverables and conversation history
+    const { data: workspaces } = await supabase
+      .from('workspaces')
+      .select('id')
+      .eq('project_id', projectId);
+
+    const hasWorkspaces = workspaces && workspaces.length > 0;
+
+    if (hasWorkspaces) {
+      // Safely deactivate: update status to 'cancelled' so it is excluded from all student listings while keeping workspace history intact
+      const { error: updateErr } = await supabase
+        .from('projects')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+
+      if (updateErr) {
+        return NextResponse.json({ error: updateErr.message }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        deactivated: true,
+        message: 'Project safely deactivated and removed from active marketplace while preserving workspace and message history.',
+      });
+    } else {
+      // Delete associated applications first if needed
+      await supabase.from('applications').delete().eq('project_id', projectId);
+
+      // Delete project record
+      const { error: deleteErr } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (deleteErr) {
+        // Fallback to safe cancellation if foreign keys exist
+        console.warn('Notice deleting project, falling back to deactivation:', deleteErr.message);
+        await supabase
+          .from('projects')
+          .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+          .eq('id', projectId);
+      }
+
+      return NextResponse.json({
+        success: true,
+        deleted: true,
+        message: 'Project successfully deleted from database and marketplace.',
+      });
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to delete project';
+    console.error('Project DELETE API error:', err);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+

@@ -78,6 +78,7 @@ interface AppContextType {
   
   createProject: (projectData: Omit<Project, 'id' | 'business_id' | 'status' | 'created_at' | 'updated_at'>) => Promise<Project>;
   updateProjectStatus: (projectId: string, status: ProjectStatus) => void;
+  deleteProject: (projectId: string) => Promise<void>;
   
   applyToProject: (projectId: string, pitchNote: string) => Promise<Application>;
   updateApplicationStatus: (applicationId: string, status: 'accepted' | 'rejected') => void;
@@ -476,6 +477,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setWorkspaces((prev) =>
               prev.map((ws) => (ws.id === data.workspaceId ? { ...ws, status: data.status } : ws))
             );
+          } else if (data?.type === 'PROJECT_DELETED' && data.projectId) {
+            setProjects((prev) => prev.filter((p) => p.id !== data.projectId));
+          } else if (data?.type === 'PROJECT_STATUS_CHANGE' && data.project) {
+            setProjects((prev) => {
+              const exists = prev.some((p) => p.id === data.project.id);
+              if (exists) {
+                return prev.map((p) => (p.id === data.project.id ? data.project : p));
+              }
+              return [data.project, ...prev];
+            });
           } else if (data?.type === 'SYNC_STATE') {
             refreshData();
           }
@@ -1119,6 +1130,66 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setProjects((prev) =>
       prev.map((p) => (p.id === projectId ? { ...p, status, updated_at: new Date().toISOString() } : p))
     );
+  };
+
+  const deleteProject = async (projectId: string): Promise<void> => {
+    if (!currentUser) {
+      throw new Error('Authentication required to delete a project');
+    }
+
+    const proj = projects.find((p) => p.id === projectId);
+    if (!proj) return;
+
+    if (proj.business_id !== currentUser.id && currentUser.role !== 'admin') {
+      throw new Error('Unauthorized: You can only delete your own projects');
+    }
+
+    // 1. Optimistically remove project from state
+    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+
+    // 2. Persist removal to localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const updatedProjects = (parsed.projects || []).filter((p: any) => p.id !== projectId);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, projects: updatedProjects }));
+        }
+      } catch {}
+    }
+
+    // 3. Request server-side deletion / safe deactivation in Supabase
+    try {
+      const res = await fetch(`/api/projects?id=${encodeURIComponent(projectId)}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': currentUser.id,
+          'x-user-role': currentUser.role,
+          'x-user-email': currentUser.email,
+        },
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.warn('Notice deleting project on server:', errData.error || res.statusText);
+      }
+    } catch (err) {
+      console.warn('Notice communicating project deletion to database:', err);
+    }
+
+    // 4. Broadcast instant deletion across tabs
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('studentconnect_chat_channel');
+        bc.postMessage({ type: 'PROJECT_DELETED', projectId });
+        setTimeout(() => { try { bc.close(); } catch {} }, 500);
+      }
+    } catch {}
+
+    // 5. Refresh background data
+    refreshData().catch(() => {});
   };
 
   const applyToProject = async (projectId: string, pitchNote: string): Promise<Application> => {
@@ -1943,6 +2014,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         registerBusiness,
         createProject,
         updateProjectStatus,
+        deleteProject,
         applyToProject,
         updateApplicationStatus,
         addWorkspaceTask,
