@@ -76,10 +76,10 @@ interface AppContextType {
     password?: string
   ) => Promise<string>;
   
-  createProject: (projectData: Omit<Project, 'id' | 'business_id' | 'status' | 'created_at' | 'updated_at'>) => Project;
+  createProject: (projectData: Omit<Project, 'id' | 'business_id' | 'status' | 'created_at' | 'updated_at'>) => Promise<Project>;
   updateProjectStatus: (projectId: string, status: ProjectStatus) => void;
   
-  applyToProject: (projectId: string, pitchNote: string) => Application;
+  applyToProject: (projectId: string, pitchNote: string) => Promise<Application>;
   updateApplicationStatus: (applicationId: string, status: 'accepted' | 'rejected') => void;
   
   // Workspace Actions
@@ -242,7 +242,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (dbProjects && dbProjects.length > 0) {
-          setProjects((prev) => mergeById(prev, dbProjects as Project[], 'id'));
+          // DB is authoritative: replace temp-id projects with real DB ones, keep local-only items
+          setProjects((prev) => {
+            const dbMap = new Map(dbProjects!.map((p) => [p.id, p]));
+            // Keep local projects that have temp IDs (not yet synced) and merge DB projects
+            const localOnly = prev.filter((p) => p.id.startsWith('proj-') && !dbMap.has(p.id));
+            return [...dbProjects!, ...localOnly].sort((a, b) =>
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+          });
         }
       } catch {}
 
@@ -263,7 +271,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (dbApps && dbApps.length > 0) {
-          setApplications((prev) => mergeById(prev, dbApps as Application[], 'id'));
+          // DB is authoritative: replace temp-id apps with real DB ones, keep local-only items
+          setApplications((prev) => {
+            const dbMap = new Map(dbApps!.map((a) => [a.id, a]));
+            const localOnly = prev.filter((a) => a.id.startsWith('app-') && !dbMap.has(a.id));
+            return [...dbApps!, ...localOnly].sort((a, b) =>
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+          });
         }
       } catch {}
     } catch (err) {
@@ -1007,7 +1022,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return assignedId;
   };
 
-  const createProject = (projectData: Omit<Project, 'id' | 'business_id' | 'status' | 'created_at' | 'updated_at'>) => {
+  const createProject = async (projectData: Omit<Project, 'id' | 'business_id' | 'status' | 'created_at' | 'updated_at'>): Promise<Project> => {
     if (!currentUser || currentUser.role !== 'business') {
       throw new Error('Only approved businesses can post projects');
     }
@@ -1036,47 +1051,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Optimistically update React Context state
     setProjects((prev) => [newProject, ...prev]);
 
-    // Save to server API & Supabase database
-    fetch('/api/projects', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: projectData.title,
-        category: projectData.category,
-        description: projectData.description,
-        deliverables_description: projectData.deliverables_description,
-        skills_required: projectData.skills_required,
-        estimated_hours_per_week: projectData.estimated_hours_per_week,
-        duration_weeks: projectData.duration_weeks,
-        business_id: currentUser.id,
-        status: targetStatus,
-        perks: projectData.perks,
-      }),
-    })
-      .then(async (res) => {
-        if (res.ok) {
-          const data = await res.json();
-          if (data.project) {
-            setProjects((prev) =>
-              prev.map((p) => (p.id === tempId ? { ...data.project, business: currentBusiness || data.project.business } : p))
-            );
-          }
-        }
-      })
-      .catch((err) => {
-        console.warn('Notice saving project to database:', err);
-      })
-      .finally(() => {
-        refreshData().catch(() => {});
+    // Save to server API & Supabase database — AWAIT to get real DB ID
+    let savedProject: Project = newProject;
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: projectData.title,
+          category: projectData.category,
+          description: projectData.description,
+          deliverables_description: projectData.deliverables_description,
+          skills_required: projectData.skills_required,
+          estimated_hours_per_week: projectData.estimated_hours_per_week,
+          duration_weeks: projectData.duration_weeks,
+          business_id: currentUser.id,
+          status: targetStatus,
+          perks: projectData.perks,
+        }),
       });
 
-    // Immediate LocalStorage persist
+      if (res.ok) {
+        const data = await res.json();
+        if (data.project) {
+          savedProject = { ...data.project, business: currentBusiness || data.project.business };
+          // Replace temp project with the real DB version
+          setProjects((prev) =>
+            prev.map((p) => (p.id === tempId ? savedProject : p))
+          );
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.error('Failed to save project:', errData.error || res.statusText);
+      }
+    } catch (err) {
+      console.warn('Notice saving project to database:', err);
+    }
+
+    // Immediate LocalStorage persist with the saved project (real ID)
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          const updatedProjects = [newProject, ...(parsed.projects || []).filter((p: any) => p.id !== tempId)];
+          const updatedProjects = [savedProject, ...(parsed.projects || []).filter((p: any) => p.id !== tempId && p.id !== savedProject.id)];
           localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, projects: updatedProjects }));
         }
       } catch {}
@@ -1086,12 +1104,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('studentconnect_chat_channel');
-        bc.postMessage({ type: 'PROJECT_STATUS_CHANGE', project: newProject });
+        bc.postMessage({ type: 'PROJECT_STATUS_CHANGE', project: savedProject });
         setTimeout(() => { try { bc.close(); } catch {} }, 500);
       }
     } catch {}
 
-    return newProject;
+    // Trigger background refresh for full sync
+    refreshData().catch(() => {});
+
+    return savedProject;
   };
 
   const updateProjectStatus = (projectId: string, status: ProjectStatus) => {
@@ -1100,7 +1121,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const applyToProject = (projectId: string, pitchNote: string) => {
+  const applyToProject = async (projectId: string, pitchNote: string): Promise<Application> => {
     if (!currentUser || currentUser.role !== 'student') {
       throw new Error('Only students can apply to projects');
     }
@@ -1153,40 +1174,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setNotifications((prev) => [appNotif, ...prev]);
     }
 
-    // Save application to database via Server API
-    fetch('/api/applications', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project_id: projectId,
-        student_id: currentUser.id,
-        pitch_note: pitchNote,
-      }),
-    })
-      .then(async (res) => {
-        if (res.ok) {
-          const data = await res.json();
-          if (data.application) {
-            setApplications((prev) =>
-              prev.map((a) => (a.id === tempAppId ? { ...data.application, student: currentStudent || data.application.student } : a))
-            );
-          }
-        }
-      })
-      .catch((err) => {
-        console.warn('Notice saving application to database:', err);
-      })
-      .finally(() => {
-        refreshData().catch(() => {});
+    // Save application to database via Server API — AWAIT for confirmation
+    let savedApp: Application = newApp;
+    try {
+      const res = await fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: projectId,
+          student_id: currentUser.id,
+          pitch_note: pitchNote,
+        }),
       });
 
-    // Save to LocalStorage
+      if (res.ok) {
+        const data = await res.json();
+        if (data.application) {
+          savedApp = { ...data.application, student: currentStudent || data.application.student };
+          // Replace temp app with real DB version
+          setApplications((prev) =>
+            prev.map((a) => (a.id === tempAppId ? savedApp : a))
+          );
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        const errMsg = errData.error || 'Failed to save application';
+        console.error('Application save failed:', errMsg);
+        // Remove the optimistic entry since it failed
+        if (res.status === 409) {
+          // Duplicate — remove local optimistic entry
+          setApplications((prev) => prev.filter((a) => a.id !== tempAppId));
+          throw new Error(errMsg);
+        }
+      }
+    } catch (err: any) {
+      if (err.message && !err.message.includes('fetch')) {
+        throw err;
+      }
+      console.warn('Notice saving application to database:', err);
+    }
+
+    // Save to LocalStorage with the saved app (real ID)
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          const updatedApps = [newApp, ...(parsed.applications || []).filter((a: any) => a.id !== tempAppId)];
+          const updatedApps = [savedApp, ...(parsed.applications || []).filter((a: any) => a.id !== tempAppId && a.id !== savedApp.id)];
           localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, applications: updatedApps }));
         }
       } catch {}
@@ -1196,12 +1230,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('studentconnect_chat_channel');
-        bc.postMessage({ type: 'APPLICATION_SUBMITTED', application: newApp });
+        bc.postMessage({ type: 'APPLICATION_SUBMITTED', application: savedApp });
         setTimeout(() => { try { bc.close(); } catch {} }, 500);
       }
     } catch {}
 
-    return newApp;
+    // Trigger background refresh for full sync
+    refreshData().catch(() => {});
+
+    return savedApp;
   };
 
   const markNotificationAsRead = (id: string) => {

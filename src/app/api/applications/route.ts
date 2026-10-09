@@ -162,7 +162,7 @@ export async function POST(req: Request) {
 
       if (projData) {
         // Increment count if column exists
-        await supabase.rpc('increment_applicant_count', { project_id_input: project_id }).catch(() => {});
+        await supabase.rpc('increment_applicant_count', { project_id_input: project_id });
       }
     } catch {}
 

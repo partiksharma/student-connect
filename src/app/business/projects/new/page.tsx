@@ -87,12 +87,12 @@ export default function NewProjectPostingPage() {
     setSkills(skills.filter((s) => s !== skillToRemove));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      createProject({
+      await createProject({
         title,
         category,
         description,

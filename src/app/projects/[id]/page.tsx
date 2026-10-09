@@ -47,10 +47,10 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const handleApply = (e: React.FormEvent) => {
+  const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      applyToProject(project.id, pitchNote);
+      await applyToProject(project.id, pitchNote);
       setApplySuccess(true);
       setTimeout(() => {
         setApplySuccess(false);

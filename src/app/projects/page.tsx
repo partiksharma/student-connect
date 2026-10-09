@@ -30,11 +30,11 @@ export default function ProjectsMarketplacePage() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleApply = (e: React.FormEvent) => {
+  const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProjectForApply) return;
     try {
-      applyToProject(selectedProjectForApply.id, pitchNote);
+      await applyToProject(selectedProjectForApply.id, pitchNote);
       setApplySuccess(true);
       setTimeout(() => {
         setApplySuccess(false);
