@@ -75,6 +75,8 @@ interface AppContextType {
     websiteUrl?: string,
     password?: string
   ) => Promise<string>;
+  updateStudentProfile: (data: Partial<StudentProfile>) => Promise<void>;
+  updateBusinessProfile: (data: Partial<BusinessProfile>) => Promise<void>;
   
   createProject: (projectData: Omit<Project, 'id' | 'business_id' | 'status' | 'created_at' | 'updated_at'>) => Promise<Project>;
   updateProjectStatus: (projectId: string, status: ProjectStatus) => void;
@@ -1033,6 +1035,82 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return assignedId;
   };
 
+  const updateStudentProfile = async (data: Partial<StudentProfile>): Promise<void> => {
+    if (!currentUser) return;
+    const targetUserId = currentUser.id;
+    const now = new Date().toISOString();
+
+    setStudents((prev) => {
+      const existing = prev.find((s) => s.user_id === targetUserId);
+      const updated: StudentProfile = {
+        user_id: targetUserId,
+        full_name: data.full_name ?? existing?.full_name ?? (currentUser.email ? currentUser.email.split('@')[0] : 'Student'),
+        school: data.school ?? existing?.school ?? 'University',
+        graduation_year: data.graduation_year ?? existing?.graduation_year ?? 2027,
+        skills: data.skills ?? existing?.skills ?? [],
+        availability_hours_per_week: data.availability_hours_per_week ?? existing?.availability_hours_per_week ?? 8,
+        bio: data.bio ?? existing?.bio ?? '',
+        portfolio_urls: data.portfolio_urls ?? existing?.portfolio_urls ?? [],
+        avatar_url: data.avatar_url ?? existing?.avatar_url ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        is_public: data.is_public ?? existing?.is_public ?? true,
+        created_at: existing?.created_at ?? now,
+        updated_at: now,
+      };
+      return [...prev.filter((s) => s.user_id !== targetUserId), updated];
+    });
+
+    // Direct Supabase upsert
+    try {
+      const supabase = createClient();
+      await supabase.from('student_profiles').upsert([
+        {
+          user_id: targetUserId,
+          ...data,
+          updated_at: now,
+        }
+      ], { onConflict: 'user_id' });
+    } catch (err) {
+      console.warn('Notice updating student profile in database:', err);
+    }
+  };
+
+  const updateBusinessProfile = async (data: Partial<BusinessProfile>): Promise<void> => {
+    if (!currentUser) return;
+    const targetUserId = currentUser.id;
+    const now = new Date().toISOString();
+
+    setBusinesses((prev) => {
+      const existing = prev.find((b) => b.user_id === targetUserId);
+      const updated: BusinessProfile = {
+        user_id: targetUserId,
+        business_name: data.business_name ?? existing?.business_name ?? (currentUser.email ? currentUser.email.split('@')[0] : 'Business Partner'),
+        industry: data.industry ?? existing?.industry ?? 'Small Business',
+        business_size: data.business_size ?? existing?.business_size ?? '1-5',
+        location: data.location ?? existing?.location ?? 'Remote',
+        description: data.description ?? existing?.description ?? '',
+        website_url: data.website_url ?? existing?.website_url ?? '',
+        logo_url: data.logo_url ?? existing?.logo_url ?? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&auto=format&fit=crop&q=80',
+        created_at: existing?.created_at ?? now,
+        updated_at: now,
+      };
+      return [...prev.filter((b) => b.user_id !== targetUserId), updated];
+    });
+
+    // Direct Supabase upsert
+    try {
+      const supabase = createClient();
+      await supabase.from('business_profiles').upsert([
+        {
+          user_id: targetUserId,
+          ...data,
+          updated_at: now,
+        }
+      ], { onConflict: 'user_id' });
+    } catch (err) {
+      console.warn('Notice updating business profile in database:', err);
+    }
+  };
+
   const createProject = async (projectData: Omit<Project, 'id' | 'business_id' | 'status' | 'created_at' | 'updated_at'>): Promise<Project> => {
     if (!currentUser || currentUser.role !== 'business') {
       throw new Error('Only approved businesses can post projects');
@@ -1060,7 +1138,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Optimistically update React Context state
-    setProjects((prev) => [newProject, ...prev]);
+    setProjects((prev) => [newProject, ...prev.filter((p) => p.id !== tempId)]);
 
     // Save to server API & Supabase database — AWAIT to get real DB ID
     let savedProject: Project = newProject;
@@ -1086,10 +1164,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         if (data.project) {
           savedProject = { ...data.project, business: currentBusiness || data.project.business };
-          // Replace temp project with the real DB version
-          setProjects((prev) =>
-            prev.map((p) => (p.id === tempId ? savedProject : p))
-          );
+          // Replace temp project with the real DB version, eliminating duplicates
+          setProjects((prev) => {
+            const listWithoutTemp = prev.filter((p) => p.id !== tempId && p.id !== savedProject.id);
+            return [savedProject, ...listWithoutTemp];
+          });
         }
       } else {
         const errData = await res.json().catch(() => ({}));
@@ -1919,8 +1998,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updated_at: prof.updated_at
     } : undefined);
 
+    const actualApplicantCount = applications.filter((a) => a.project_id === p.id).length;
+
     return {
       ...p,
+      applicant_count: actualApplicantCount || p.applicant_count || 0,
       business: fallbackBiz,
     };
   });
@@ -2012,6 +2094,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refreshData,
         registerStudent,
         registerBusiness,
+        updateStudentProfile,
+        updateBusinessProfile,
         createProject,
         updateProjectStatus,
         deleteProject,

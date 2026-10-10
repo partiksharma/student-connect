@@ -28,6 +28,8 @@ export default function ProjectDetailPage() {
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const [pitchNote, setPitchNote] = useState('');
   const [applySuccess, setApplySuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
 
   const projectId = params?.id as string;
   const project = projects.find((p) => p.id === projectId);
@@ -49,6 +51,21 @@ export default function ProjectDetailPage() {
 
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    if (!currentUser) {
+      setApplyError('Please log in or create a student account to apply to projects.');
+      return;
+    }
+
+    if (currentUser.role !== 'student') {
+      setApplyError('Only students can apply to projects. Please switch to or register a student account.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setApplyError(null);
+
     try {
       await applyToProject(project.id, pitchNote);
       setApplySuccess(true);
@@ -56,10 +73,12 @@ export default function ProjectDetailPage() {
         setApplySuccess(false);
         setIsApplyModalOpen(false);
         setPitchNote('');
+        setIsSubmitting(false);
       }, 1500);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Please login as a student to apply';
-      alert(msg);
+      setIsSubmitting(false);
+      const msg = err instanceof Error ? err.message : 'Failed to submit application. Please try again.';
+      setApplyError(msg);
     }
   };
 
@@ -256,7 +275,10 @@ export default function ProjectDetailPage() {
       {/* Apply Modal */}
       <Modal
         isOpen={isApplyModalOpen}
-        onClose={() => setIsApplyModalOpen(false)}
+        onClose={() => {
+          setIsApplyModalOpen(false);
+          setApplyError(null);
+        }}
         title={`Apply to ${project.title}`}
         description={`Pitch note to ${project.business?.business_name || 'Business'}`}
       >
@@ -272,6 +294,23 @@ export default function ProjectDetailPage() {
           </div>
         ) : (
           <form onSubmit={handleApply} className="space-y-4">
+            {applyError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex flex-col gap-2">
+                <span>{applyError}</span>
+                {!currentUser && (
+                  <div className="flex gap-2 pt-1">
+                    <Link href="/auth/login?role=student" className="underline font-bold hover:text-red-900">
+                      Log In as Student
+                    </Link>
+                    <span>•</span>
+                    <Link href="/auth/register?role=student" className="underline font-bold hover:text-red-900">
+                      Register
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-semibold text-stone-700 mb-1">
                 Your pitch & proposal
@@ -280,18 +319,28 @@ export default function ProjectDetailPage() {
                 rows={5}
                 required
                 value={pitchNote}
+                disabled={isSubmitting}
                 onChange={(e) => setPitchNote(e.target.value)}
                 placeholder="Explain why you are excited about this project, your relevant coursework or past projects, and what approach you will take..."
-                className="w-full text-xs p-3 rounded-xl border border-[#E5DFD5] bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
+                className="w-full text-xs p-3 rounded-xl border border-[#E5DFD5] bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B] disabled:opacity-50"
               />
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setIsApplyModalOpen(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={isSubmitting}
+                onClick={() => {
+                  setIsApplyModalOpen(false);
+                  setApplyError(null);
+                }}
+              >
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="sm">
-                Submit Pitch
+              <Button type="submit" variant="primary" size="sm" disabled={isSubmitting}>
+                {isSubmitting ? 'Submitting...' : 'Submit Pitch'}
               </Button>
             </div>
           </form>

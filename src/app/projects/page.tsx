@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useApp } from '@/lib/store';
 import { ProjectCard } from '@/components/ui/ProjectCard';
 import { Button } from '@/components/ui/Button';
@@ -15,6 +16,8 @@ export default function ProjectsMarketplacePage() {
   const [selectedProjectForApply, setSelectedProjectForApply] = useState<Project | null>(null);
   const [pitchNote, setPitchNote] = useState('');
   const [applySuccess, setApplySuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
 
   const openProjects = projects.filter((p) => p.status === 'open');
 
@@ -32,7 +35,21 @@ export default function ProjectsMarketplacePage() {
 
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProjectForApply) return;
+    if (!selectedProjectForApply || isSubmitting) return;
+
+    if (!currentUser) {
+      setApplyError('Please log in with a verified student account to apply to projects.');
+      return;
+    }
+
+    if (currentUser.role !== 'student') {
+      setApplyError('Only student accounts can submit project applications.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setApplyError(null);
+
     try {
       await applyToProject(selectedProjectForApply.id, pitchNote);
       setApplySuccess(true);
@@ -42,8 +59,10 @@ export default function ProjectsMarketplacePage() {
         setPitchNote('');
       }, 1500);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Please login as a student to apply';
-      alert(msg);
+      const msg = err instanceof Error ? err.message : 'Failed to submit application';
+      setApplyError(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -107,7 +126,10 @@ export default function ProjectsMarketplacePage() {
           <ProjectCard
             key={project.id}
             project={project}
-            onApply={(proj) => setSelectedProjectForApply(proj)}
+            onApply={(proj) => {
+              setApplyError(null);
+              setSelectedProjectForApply(proj);
+            }}
           />
         ))}
       </div>
@@ -139,7 +161,12 @@ export default function ProjectsMarketplacePage() {
       {selectedProjectForApply && (
         <Modal
           isOpen={!!selectedProjectForApply}
-          onClose={() => setSelectedProjectForApply(null)}
+          onClose={() => {
+            if (!isSubmitting) {
+              setSelectedProjectForApply(null);
+              setApplyError(null);
+            }
+          }}
           title={`Apply to: ${selectedProjectForApply.title}`}
           description={`Submitting application to ${selectedProjectForApply.business?.business_name || 'Business'}`}
         >
@@ -155,6 +182,22 @@ export default function ProjectsMarketplacePage() {
             </div>
           ) : (
             <form onSubmit={handleApply} className="space-y-4">
+              {applyError && (
+                <div className="p-3.5 rounded-2xl bg-[#FAF3E8] border border-[#ECDAB8] text-[#8C6420] text-xs font-semibold space-y-2">
+                  <div>{applyError}</div>
+                  {!currentUser && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <Link href="/login" className="inline-block px-3 py-1 bg-[#0D3D2B] text-white rounded-xl font-bold text-[11px] hover:bg-[#08281A]">
+                        Log In
+                      </Link>
+                      <Link href="/register" className="inline-block px-3 py-1 bg-white border border-[#0D3D2B] text-[#0D3D2B] rounded-xl font-bold text-[11px] hover:bg-[#FAF7F2]">
+                        Sign Up
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-stone-800 mb-1">
                   Why are you interested in this project?
@@ -180,11 +223,15 @@ export default function ProjectsMarketplacePage() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelectedProjectForApply(null)}
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    setSelectedProjectForApply(null);
+                    setApplyError(null);
+                  }}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" variant="primary" size="sm">
+                <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting}>
                   Send Application
                 </Button>
               </div>

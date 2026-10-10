@@ -30,6 +30,8 @@ export default function LandingPage() {
   const [selectedProjectForApply, setSelectedProjectForApply] = useState<Project | null>(null);
   const [pitchNote, setPitchNote] = useState('');
   const [applySuccess, setApplySuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
 
   const openProjects = projects.filter((p) => p.status === 'open');
 
@@ -39,7 +41,21 @@ export default function LandingPage() {
 
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProjectForApply) return;
+    if (!selectedProjectForApply || isSubmitting) return;
+
+    if (!currentUser) {
+      setApplyError('Please log in or create a student account to apply to projects.');
+      return;
+    }
+
+    if (currentUser.role !== 'student') {
+      setApplyError('Only students can apply to projects. Please switch to or register a student account.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setApplyError(null);
+
     try {
       await applyToProject(selectedProjectForApply.id, pitchNote);
       setApplySuccess(true);
@@ -47,10 +63,12 @@ export default function LandingPage() {
         setApplySuccess(false);
         setSelectedProjectForApply(null);
         setPitchNote('');
+        setIsSubmitting(false);
       }, 1500);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Please login as a student to apply';
-      alert(msg);
+      setIsSubmitting(false);
+      const msg = err instanceof Error ? err.message : 'Failed to submit application. Please try again.';
+      setApplyError(msg);
     }
   };
 
@@ -328,7 +346,10 @@ export default function LandingPage() {
       {selectedProjectForApply && (
         <Modal
           isOpen={!!selectedProjectForApply}
-          onClose={() => setSelectedProjectForApply(null)}
+          onClose={() => {
+            setSelectedProjectForApply(null);
+            setApplyError(null);
+          }}
           title={`Apply to: ${selectedProjectForApply.title}`}
           description={`Submit your pitch to ${selectedProjectForApply.business?.business_name || 'Business'}`}
         >
@@ -346,6 +367,23 @@ export default function LandingPage() {
             </div>
           ) : (
             <form onSubmit={handleApply} className="space-y-4">
+              {applyError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex flex-col gap-2">
+                  <span>{applyError}</span>
+                  {!currentUser && (
+                    <div className="flex gap-2 pt-1">
+                      <Link href="/auth/login?role=student" className="underline font-bold hover:text-red-900">
+                        Log In as Student
+                      </Link>
+                      <span>•</span>
+                      <Link href="/auth/register?role=student" className="underline font-bold hover:text-red-900">
+                        Register
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-stone-800 mb-1">
                   Why are you a good fit for this project?
@@ -354,9 +392,10 @@ export default function LandingPage() {
                   rows={4}
                   required
                   value={pitchNote}
+                  disabled={isSubmitting}
                   onChange={(e) => setPitchNote(e.target.value)}
                   placeholder="Mention your relevant skills, past coursework, and ideas..."
-                  className="w-full text-xs p-3 rounded-2xl border border-[#E5DFD5] bg-white text-stone-900 focus:ring-2 focus:ring-[#0D3D2B] outline-none"
+                  className="w-full text-xs p-3 rounded-2xl border border-[#E5DFD5] bg-white text-stone-900 focus:ring-2 focus:ring-[#0D3D2B] outline-none disabled:opacity-50"
                 />
               </div>
 
@@ -369,12 +408,16 @@ export default function LandingPage() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelectedProjectForApply(null)}
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    setSelectedProjectForApply(null);
+                    setApplyError(null);
+                  }}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" variant="primary" size="sm">
-                  Submit Application
+                <Button type="submit" variant="primary" size="sm" disabled={isSubmitting}>
+                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
                 </Button>
               </div>
             </form>

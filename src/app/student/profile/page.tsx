@@ -18,17 +18,31 @@ import {
 } from 'lucide-react';
 
 export default function StudentProfilePage() {
-  const { currentStudent, currentUser, feedbackList } = useApp();
+  const { currentStudent, currentUser, feedbackList, updateStudentProfile } = useApp();
 
-  const [fullName, setFullName] = useState(currentStudent?.full_name || 'Sarah Chen');
-  const [school, setSchool] = useState(currentStudent?.school || 'Stanford University');
+  const [fullName, setFullName] = useState(currentStudent?.full_name || '');
+  const [school, setSchool] = useState(currentStudent?.school || '');
   const [gradYear, setGradYear] = useState(currentStudent?.graduation_year || 2027);
   const [hours, setHours] = useState(currentStudent?.availability_hours_per_week || 8);
   const [bio, setBio] = useState(currentStudent?.bio || '');
   const [skills, setSkills] = useState<string[]>(currentStudent?.skills || ['Social Media Strategy', 'Canva', 'Content Writing']);
   const [newSkillInput, setNewSkillInput] = useState('');
-  const [portfolioUrl, setPortfolioUrl] = useState(currentStudent?.portfolio_urls?.[0] || 'https://github.com/sarah-chen');
+  const [portfolioUrl, setPortfolioUrl] = useState(currentStudent?.portfolio_urls?.[0] || '');
   const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Sync state when currentStudent loads
+  React.useEffect(() => {
+    if (currentStudent) {
+      if (currentStudent.full_name) setFullName(currentStudent.full_name);
+      if (currentStudent.school) setSchool(currentStudent.school);
+      if (currentStudent.graduation_year) setGradYear(currentStudent.graduation_year);
+      if (currentStudent.availability_hours_per_week) setHours(currentStudent.availability_hours_per_week);
+      if (currentStudent.bio) setBio(currentStudent.bio);
+      if (currentStudent.skills?.length) setSkills(currentStudent.skills);
+      if (currentStudent.portfolio_urls?.length) setPortfolioUrl(currentStudent.portfolio_urls[0]);
+    }
+  }, [currentStudent]);
 
   const studentReviews = feedbackList.filter((f) => f.recipient_id === currentUser?.id);
 
@@ -43,10 +57,26 @@ export default function StudentProfilePage() {
     setSkills(skills.filter((s) => s !== skillToRemove));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2500);
+    setIsSaving(true);
+    try {
+      await updateStudentProfile({
+        full_name: fullName,
+        school,
+        graduation_year: gradYear,
+        availability_hours_per_week: hours,
+        bio,
+        skills,
+        portfolio_urls: portfolioUrl ? [portfolioUrl] : [],
+      });
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to update student profile:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -219,7 +249,7 @@ export default function StudentProfilePage() {
             </div>
           )}
           <div className="ml-auto">
-            <Button type="submit" size="md" variant="primary">
+            <Button type="submit" size="md" variant="primary" isLoading={isSaving}>
               Save Profile
             </Button>
           </div>
