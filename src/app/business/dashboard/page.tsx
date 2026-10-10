@@ -115,14 +115,26 @@ export default function BusinessDashboardPage() {
     }, 1500);
   };
 
-  // Find all pending applications across this business's projects
+  // Find all applications across this business's projects with strict uniqueness per student & project
   const myProjectIds = myProjects.map((p) => p.id);
-  const pendingApplicants = applications.filter(
-    (a) => myProjectIds.includes(a.project_id) && a.status === 'pending'
-  );
-  const allMyApplications = applications.filter(
-    (a) => myProjectIds.includes(a.project_id)
-  );
+  
+  const uniqueAppMap = new Map<string, (typeof applications)[0]>();
+  applications.forEach((a) => {
+    if (myProjectIds.includes(a.project_id)) {
+      const key = `${a.project_id}::${a.student_id}`;
+      if (!uniqueAppMap.has(key)) {
+        uniqueAppMap.set(key, a);
+      } else {
+        const existing = uniqueAppMap.get(key)!;
+        if (a.status === 'accepted' || (existing.status === 'pending' && a.status !== 'pending')) {
+          uniqueAppMap.set(key, a);
+        }
+      }
+    }
+  });
+
+  const allMyApplications = Array.from(uniqueAppMap.values());
+  const pendingApplicants = allMyApplications.filter((a) => a.status === 'pending');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">

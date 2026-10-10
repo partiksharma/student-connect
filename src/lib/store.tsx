@@ -167,6 +167,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return Array.from(map.values());
   };
 
+  // Specialized deduplicator for applications: merges by exact id AND by (project_id, student_id) composite key
+  const mergeApplications = (initial: Application[] = [], incoming: Application[] = []): Application[] => {
+    const map = new Map<string, Application>(); // composite key (project_id::student_id) -> Application
+    const idToComposite = new Map<string, string>();
+
+    const processApp = (app: Application) => {
+      if (!app || !app.project_id || !app.student_id) return;
+      const compositeKey = `${app.project_id}::${app.student_id}`;
+      const existing = map.get(compositeKey);
+
+      if (!existing) {
+        map.set(compositeKey, app);
+        idToComposite.set(app.id, compositeKey);
+      } else {
+        // Decide authoritative ID: real DB UUIDs supersede temp 'app-...' IDs
+        const existingIsTemp = existing.id.startsWith('app-');
+        const incomingIsTemp = app.id.startsWith('app-');
+        const chosenId = (!incomingIsTemp && existingIsTemp) ? app.id : (existingIsTemp ? app.id : existing.id);
+
+        const isIncomingNewer = new Date(app.updated_at || app.created_at).getTime() >= new Date(existing.updated_at || existing.created_at).getTime();
+
+        const merged: Application = {
+          ...existing,
+          ...app,
+          id: chosenId,
+          status: app.status && app.status !== 'pending' ? app.status : existing.status,
+          pitch_note: app.pitch_note || existing.pitch_note,
+          student: app.student || existing.student,
+          project: app.project || existing.project,
+          updated_at: isIncomingNewer ? (app.updated_at || new Date().toISOString()) : existing.updated_at,
+        };
+
+        map.set(compositeKey, merged);
+        idToComposite.set(chosenId, compositeKey);
+      }
+    };
+
+    initial.forEach(processApp);
+    incoming.forEach(processApp);
+
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  };
+
   // Load state from localStorage & Supabase Cloud DB
   const refreshData = useCallback(async () => {
     // 1. Sync from localStorage first for instant multi-tab sync
@@ -179,7 +224,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (parsed.students?.length) setStudents((prev) => mergeById(prev, parsed.students, 'user_id'));
           if (parsed.businesses?.length) setBusinesses((prev) => mergeById(prev, parsed.businesses, 'user_id'));
           if (parsed.projects?.length) setProjects((prev) => mergeById(prev, parsed.projects, 'id'));
-          if (parsed.applications?.length) setApplications((prev) => mergeById(prev, parsed.applications, 'id'));
+          if (parsed.applications?.length) setApplications((prev) => mergeApplications(prev, parsed.applications));
           if (parsed.workspaces?.length) setWorkspaces((prev) => mergeById(prev, parsed.workspaces, 'id'));
           if (parsed.feedbackList?.length) setFeedbackList((prev) => mergeById(prev, parsed.feedbackList, 'id'));
           if (parsed.reports?.length) setReports((prev) => mergeById(prev, parsed.reports, 'id'));
@@ -274,14 +319,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (dbApps && dbApps.length > 0) {
-          // DB is authoritative: replace temp-id apps with real DB ones, keep local-only items
-          setApplications((prev) => {
-            const dbMap = new Map(dbApps!.map((a) => [a.id, a]));
-            const localOnly = prev.filter((a) => a.id.startsWith('app-') && !dbMap.has(a.id));
-            return [...dbApps!, ...localOnly].sort((a, b) =>
-              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            );
-          });
+          setApplications((prev) => mergeApplications(prev, dbApps as Application[]));
         }
       } catch {}
     } catch (err) {
@@ -299,7 +337,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (parsed.students) setStudents(mergeById(INITIAL_STUDENTS, parsed.students, 'user_id'));
         if (parsed.businesses) setBusinesses(mergeById(INITIAL_BUSINESSES, parsed.businesses, 'user_id'));
         if (parsed.projects) setProjects(mergeById(INITIAL_PROJECTS, parsed.projects, 'id'));
-        if (parsed.applications) setApplications(mergeById(INITIAL_APPLICATIONS, parsed.applications, 'id'));
+        if (parsed.applications) setApplications(mergeApplications(INITIAL_APPLICATIONS, parsed.applications));
         if (parsed.workspaces) setWorkspaces(mergeById(INITIAL_WORKSPACES, parsed.workspaces, 'id'));
         if (parsed.feedbackList) setFeedbackList(mergeById(INITIAL_FEEDBACK, parsed.feedbackList, 'id'));
         if (parsed.reports?.length) setReports(parsed.reports);
@@ -475,6 +513,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 return [data.notification, ...prev];
               });
             }
+          } else if (data?.type === 'APPLICATION_SUBMITTED' && data.application) {
+            setApplications((prev) => mergeApplications(prev, [data.application]));
+            refreshData();
+          } else if (data?.type === 'APPLICATION_STATUS_CHANGE' && data.applicationId && data.status) {
+            setApplications((prev) =>
+              prev.map((a) => (a.id === data.applicationId || (data.projectId && data.studentId && a.project_id === data.projectId && a.student_id === data.studentId) ? { ...a, status: data.status, updated_at: new Date().toISOString() } : a))
+            );
           } else if (data?.type === 'UPDATE_WORKSPACE_STATUS' && data.workspaceId && data.status) {
             setWorkspaces((prev) =>
               prev.map((ws) => (ws.id === data.workspaceId ? { ...ws, status: data.status } : ws))
@@ -1300,8 +1345,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       student: currentStudent || undefined,
     };
 
-    // Optimistically update applications and project applicant counter
-    setApplications((prev) => [newApp, ...prev]);
+    // Optimistically update applications and project applicant counter with strict deduplication
+    setApplications((prev) => mergeApplications(prev, [newApp]));
     setProjects((prev) =>
       prev.map((p) => (p.id === projectId ? { ...p, applicant_count: (p.applicant_count || 0) + 1 } : p))
     );
@@ -1341,9 +1386,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         if (data.application) {
           savedApp = { ...data.application, student: currentStudent || data.application.student };
-          // Replace temp app with real DB version
+          // Replace temp app with real DB version and deduplicate
           setApplications((prev) =>
-            prev.map((a) => (a.id === tempAppId ? savedApp : a))
+            mergeApplications(
+              prev.filter((a) => a.id !== tempAppId && a.id !== savedApp.id),
+              [savedApp]
+            )
           );
         }
       } else {
@@ -1370,7 +1418,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          const updatedApps = [savedApp, ...(parsed.applications || []).filter((a: any) => a.id !== tempAppId && a.id !== savedApp.id)];
+          const updatedApps = mergeApplications(
+            (parsed.applications || []).filter((a: any) => a.id !== tempAppId && a.id !== savedApp.id),
+            [savedApp]
+          );
           localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, applications: updatedApps }));
         }
       } catch {}
@@ -1402,8 +1453,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!app) return;
 
     setApplications((prev) =>
-      prev.map((a) => (a.id === applicationId ? { ...a, status, updated_at: new Date().toISOString() } : a))
+      prev.map((a) => (a.id === applicationId || (a.project_id === app.project_id && a.student_id === app.student_id) ? { ...a, status, updated_at: new Date().toISOString() } : a))
     );
+
+    // Broadcast status change across tabs
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('studentconnect_chat_channel');
+        bc.postMessage({ type: 'APPLICATION_STATUS_CHANGE', applicationId, status, projectId: app.project_id, studentId: app.student_id });
+        setTimeout(() => { try { bc.close(); } catch {} }, 500);
+      }
+    } catch {}
 
     // Save status update to database via Server API
     fetch('/api/applications', {
@@ -1998,7 +2058,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updated_at: prof.updated_at
     } : undefined);
 
-    const actualApplicantCount = applications.filter((a) => a.project_id === p.id).length;
+    const actualApplicantCount = mergeApplications(applications).filter((a) => a.project_id === p.id).length;
 
     return {
       ...p,
@@ -2007,7 +2067,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   });
 
-  const hydratedApplications = applications.map((a) => {
+  const uniqueApplications = mergeApplications(applications);
+
+  const hydratedApplications = uniqueApplications.map((a) => {
     const studentObj = students.find((s) => s.user_id === a.student_id);
     const profileObj = profiles.find((p) => p.id === a.student_id);
     const fallbackStudent = studentObj || (profileObj ? {

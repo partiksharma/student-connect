@@ -69,7 +69,21 @@ export async function GET(req: Request) {
         return proj && proj.business_id === businessId;
       });
 
-    return NextResponse.json({ applications: enrichedApps });
+    // Enforce strict uniqueness by composite key (project_id, student_id)
+    const uniqueAppMap = new Map<string, any>();
+    enrichedApps.forEach((app: any) => {
+      const compositeKey = `${app.project_id}::${app.student_id}`;
+      if (!uniqueAppMap.has(compositeKey)) {
+        uniqueAppMap.set(compositeKey, app);
+      } else {
+        const existing = uniqueAppMap.get(compositeKey);
+        if (app.status === 'accepted' || (existing.status === 'pending' && app.status !== 'pending')) {
+          uniqueAppMap.set(compositeKey, app);
+        }
+      }
+    });
+
+    return NextResponse.json({ applications: Array.from(uniqueAppMap.values()) });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to fetch applications';
     return NextResponse.json({ error: message, applications: [] }, { status: 500 });

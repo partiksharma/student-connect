@@ -25,7 +25,21 @@ export default function BusinessApplicantsReviewPage() {
 
   const projectId = params?.id as string;
   const project = projects.find((p) => p.id === projectId);
-  const projectApps = applications.filter((a) => a.project_id === projectId);
+  
+  const rawProjectApps = applications.filter((a) => a.project_id === projectId);
+  const projectAppsMap = new Map<string, (typeof applications)[0]>();
+  rawProjectApps.forEach((a) => {
+    const key = a.student_id;
+    if (!projectAppsMap.has(key)) {
+      projectAppsMap.set(key, a);
+    } else {
+      const existing = projectAppsMap.get(key)!;
+      if (a.status === 'accepted' || (existing.status === 'pending' && a.status !== 'pending')) {
+        projectAppsMap.set(key, a);
+      }
+    }
+  });
+  const projectApps = Array.from(projectAppsMap.values());
 
   const [notification, setNotification] = useState<string | null>(null);
 
