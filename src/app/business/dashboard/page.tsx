@@ -20,39 +20,17 @@ import {
   FileText,
   GraduationCap,
   Star,
-  Award,
-  Trash2,
-  AlertTriangle,
-  Loader2
+  Award
 } from 'lucide-react';
 
 export default function BusinessDashboardPage() {
-  const { currentUser, currentBusiness, projects, applications, workspaces, feedbackList, submitFeedback, deleteProject } = useApp();
+  const { currentUser, currentBusiness, projects, applications, workspaces, feedbackList, submitFeedback } = useApp();
 
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedWorkspaceForReview, setSelectedWorkspaceForReview] = useState<any | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewTestimonial, setReviewTestimonial] = useState('');
   const [reviewSubmittedSuccess, setReviewSubmittedSuccess] = useState(false);
-
-  const [projectToDelete, setProjectToDelete] = useState<any | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState('');
-
-  const handleConfirmDelete = async () => {
-    if (!projectToDelete) return;
-    setIsDeleting(true);
-    setDeleteError('');
-    try {
-      await deleteProject(projectToDelete.id);
-      setProjectToDelete(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete project';
-      setDeleteError(msg);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   if (!currentUser) {
     return (
@@ -351,20 +329,6 @@ export default function BusinessDashboardPage() {
                         </Button>
                       </Link>
                     )}
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
-                      onClick={() => {
-                        setDeleteError('');
-                        setProjectToDelete(proj);
-                      }}
-                      title="Delete this project"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 mr-1 text-rose-500" />
-                      Delete
-                    </Button>
                   </div>
                 </div>
               );
@@ -646,67 +610,6 @@ export default function BusinessDashboardPage() {
             </Button>
           </div>
         </form>
-      </Modal>
-
-      {/* Delete Project Confirmation Modal */}
-      <Modal
-        isOpen={!!projectToDelete}
-        onClose={() => {
-          if (!isDeleting) setProjectToDelete(null);
-        }}
-        title="Delete Project Listing"
-        maxWidth="md"
-      >
-        <div className="space-y-4">
-          <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900">
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-            <div className="space-y-1 text-xs">
-              <p className="font-bold">
-                Are you sure you want to delete this project?
-              </p>
-              <p className="text-rose-700 leading-relaxed font-medium">
-                &ldquo;{projectToDelete?.title}&rdquo; will be removed from active marketplace listings. Any active workspaces and applicant conversation records will remain securely archived and accessible.
-              </p>
-            </div>
-          </div>
-
-          {deleteError && (
-            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>{deleteError}</span>
-            </div>
-          )}
-
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-100">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={isDeleting}
-              onClick={() => setProjectToDelete(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isDeleting}
-              onClick={handleConfirmDelete}
-              className="bg-rose-600 hover:bg-rose-700 text-white border-transparent hover:text-white"
-            >
-              {isDeleting ? (
-                <span className="flex items-center gap-1.5">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Deleting...
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5">
-                  <Trash2 className="w-3.5 h-3.5" /> Delete Project
-                </span>
-              )}
-            </Button>
-          </div>
-        </div>
       </Modal>
     </div>
   );

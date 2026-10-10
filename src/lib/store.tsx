@@ -83,7 +83,7 @@ interface AppContextType {
   deleteProject: (projectId: string) => Promise<void>;
   
   applyToProject: (projectId: string, pitchNote: string) => Promise<Application>;
-  updateApplicationStatus: (applicationId: string, status: 'accepted' | 'rejected') => void;
+  updateApplicationStatus: (applicationId: string, status: 'accepted' | 'rejected') => Workspace | undefined;
   
   // Workspace Actions
   addWorkspaceTask: (workspaceId: string, title: string) => void;
@@ -1448,9 +1448,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const updateApplicationStatus = (applicationId: string, status: 'accepted' | 'rejected') => {
+  const updateApplicationStatus = (applicationId: string, status: 'accepted' | 'rejected'): Workspace | undefined => {
     const app = applications.find((a) => a.id === applicationId);
-    if (!app) return;
+    if (!app) return undefined;
 
     setApplications((prev) =>
       prev.map((a) => (a.id === applicationId || (a.project_id === app.project_id && a.student_id === app.student_id) ? { ...a, status, updated_at: new Date().toISOString() } : a))
@@ -1473,12 +1473,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => {});
 
     const proj = projects.find((p) => p.id === app.project_id);
+    let createdWorkspace: Workspace | undefined = undefined;
 
     if (status === 'accepted') {
-      if (proj) {
+      const existingWs = workspaces.find((w) => w.project_id === app.project_id);
+      if (existingWs) {
+        createdWorkspace = existingWs;
+      } else if (proj) {
         // Create active Workspace
-        const newWorkspace: Workspace = {
-          id: `ws-${Date.now()}`,
+        const wsId = `ws-${Date.now()}`;
+        createdWorkspace = {
+          id: wsId,
           project_id: proj.id,
           student_id: app.student_id,
           business_id: proj.business_id,
@@ -1489,7 +1494,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           tasks: [
             {
               id: `task-${Date.now()}-1`,
-              workspace_id: `ws-${Date.now()}`,
+              workspace_id: wsId,
               title: 'Kickoff: Align on deliverables & timeline',
               is_completed: false,
               created_by: proj.business_id,
@@ -1497,7 +1502,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             },
             {
               id: `task-${Date.now()}-2`,
-              workspace_id: `ws-${Date.now()}`,
+              workspace_id: wsId,
               title: 'Draft initial concept / proposal',
               is_completed: false,
               created_by: app.student_id,
@@ -1505,7 +1510,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             },
             {
               id: `task-${Date.now()}-3`,
-              workspace_id: `ws-${Date.now()}`,
+              workspace_id: wsId,
               title: 'Deliver final files & handoff',
               is_completed: false,
               created_by: app.student_id,
@@ -1515,7 +1520,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           messages: [
             {
               id: `msg-${Date.now()}`,
-              workspace_id: `ws-${Date.now()}`,
+              workspace_id: wsId,
               sender_id: proj.business_id,
               sender_name: currentBusiness?.business_name || 'Business Partner',
               sender_role: 'business',
@@ -1527,7 +1532,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           files: []
         };
 
-        setWorkspaces((prev) => [newWorkspace, ...prev]);
+        setWorkspaces((prev) => [createdWorkspace!, ...prev]);
         updateProjectStatus(proj.id, 'in_progress');
 
         // Create Approval Notification for Student
@@ -1538,7 +1543,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           title: '🎉 Application Approved!',
           message: `Congratulations! The client business has approved your application for "${proj.title}". Your workspace is live!`,
           project_id: proj.id,
-          workspace_id: newWorkspace.id,
+          workspace_id: createdWorkspace.id,
           is_read: false,
           created_at: new Date().toISOString(),
         };
@@ -1557,6 +1562,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
       setNotifications((prev) => [newNotif, ...prev]);
     }
+
+    return createdWorkspace;
   };
 
   const addWorkspaceTask = (workspaceId: string, title: string) => {

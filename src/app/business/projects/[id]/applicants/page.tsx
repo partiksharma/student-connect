@@ -15,7 +15,8 @@ import {
   XCircle,
   ExternalLink,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 
 export default function BusinessApplicantsReviewPage() {
@@ -42,6 +43,7 @@ export default function BusinessApplicantsReviewPage() {
   const projectApps = Array.from(projectAppsMap.values());
 
   const [notification, setNotification] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   if (!project) {
     return (
@@ -57,21 +59,33 @@ export default function BusinessApplicantsReviewPage() {
   }
 
   const handleAccept = (appId: string, studentName: string) => {
-    updateApplicationStatus(appId, 'accepted');
-    setNotification(`Accepted ${studentName}! Workspace created.`);
+    if (processingId) return;
+    setProcessingId(appId);
+    const ws = updateApplicationStatus(appId, 'accepted');
+    setNotification(`Accepted ${studentName}! Creating project workspace...`);
     setTimeout(() => {
-      // Find workspace
-      const ws = workspaces.find((w) => w.project_id === projectId);
-      if (ws) {
+      if (ws?.id) {
         router.push(`/workspace/${ws.id}`);
       } else {
-        router.push('/business/dashboard');
+        const foundWs = workspaces.find((w) => w.project_id === projectId);
+        if (foundWs) {
+          router.push(`/workspace/${foundWs.id}`);
+        } else {
+          router.push('/business/dashboard');
+        }
       }
-    }, 1500);
+    }, 800);
   };
 
   const handleReject = (appId: string) => {
+    if (processingId) return;
+    setProcessingId(appId);
     updateApplicationStatus(appId, 'rejected');
+    setNotification('Application was declined.');
+    setTimeout(() => {
+      setProcessingId(null);
+      setTimeout(() => setNotification(null), 3000);
+    }, 400);
   };
 
   return (
@@ -223,17 +237,27 @@ export default function BusinessApplicantsReviewPage() {
                       size="sm"
                       variant="ghost"
                       className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                      disabled={!!processingId}
                       onClick={() => handleReject(app.id)}
                     >
-                      <XCircle className="w-4 h-4 mr-1" />
+                      {processingId === app.id ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <XCircle className="w-4 h-4 mr-1" />
+                      )}
                       Decline
                     </Button>
                     <Button
                       size="sm"
                       variant="primary"
+                      disabled={!!processingId}
                       onClick={() => handleAccept(app.id, student?.full_name || 'Student')}
                     >
-                      <CheckCircle2 className="w-4 h-4 mr-1" />
+                      {processingId === app.id ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 mr-1" />
+                      )}
                       Accept & Start Project Workspace
                     </Button>
                   </div>
