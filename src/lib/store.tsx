@@ -212,6 +212,54 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  // Specialized deduplicator for projects: merges by exact id AND by (business_id, title_normalized) composite key
+  const mergeProjects = (initial: Project[] = [], incoming: Project[] = []): Project[] => {
+    const map = new Map<string, Project>();
+    const idToComposite = new Map<string, string>();
+
+    const processProj = (proj: Project) => {
+      if (!proj || !proj.title) return;
+      const cleanTitle = proj.title.trim().toLowerCase();
+      const compositeKey = proj.business_id ? `${proj.business_id}::${cleanTitle}` : proj.id;
+      
+      const existing = map.get(compositeKey) || (proj.id && idToComposite.has(proj.id) ? map.get(idToComposite.get(proj.id)!) : undefined);
+
+      if (!existing) {
+        map.set(compositeKey, proj);
+        if (proj.id) idToComposite.set(proj.id, compositeKey);
+      } else {
+        // Real persistent UUIDs supersede temporary timestamp IDs
+        const existingIsTemp = existing.id.startsWith('proj-') && existing.id.length > 10;
+        const incomingIsTemp = proj.id.startsWith('proj-') && proj.id.length > 10;
+        const chosenId = (!incomingIsTemp && existingIsTemp) ? proj.id : (existingIsTemp ? proj.id : existing.id);
+
+        const isIncomingNewer = new Date(proj.updated_at || proj.created_at).getTime() >= new Date(existing.updated_at || existing.created_at).getTime();
+
+        const merged: Project = {
+          ...existing,
+          ...proj,
+          id: chosenId,
+          business_id: proj.business_id || existing.business_id,
+          business: proj.business || existing.business,
+          status: proj.status && proj.status !== 'pending_approval' ? proj.status : (existing.status || proj.status),
+          applicant_count: Math.max(proj.applicant_count || 0, existing.applicant_count || 0),
+          updated_at: isIncomingNewer ? (proj.updated_at || new Date().toISOString()) : existing.updated_at,
+        };
+
+        map.set(compositeKey, merged);
+        if (chosenId) idToComposite.set(chosenId, compositeKey);
+        if (proj.id && proj.id !== chosenId) idToComposite.set(proj.id, compositeKey);
+      }
+    };
+
+    initial.forEach(processProj);
+    incoming.forEach(processProj);
+
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  };
+
   // Load state from localStorage & Supabase Cloud DB
   const refreshData = useCallback(async () => {
     // 1. Sync from localStorage first for instant multi-tab sync
@@ -223,7 +271,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (parsed.profiles?.length) setProfiles((prev) => mergeById(prev, parsed.profiles, 'id'));
           if (parsed.students?.length) setStudents((prev) => mergeById(prev, parsed.students, 'user_id'));
           if (parsed.businesses?.length) setBusinesses((prev) => mergeById(prev, parsed.businesses, 'user_id'));
-          if (parsed.projects?.length) setProjects((prev) => mergeById(prev, parsed.projects, 'id'));
+          if (parsed.projects?.length) setProjects((prev) => mergeProjects(prev, parsed.projects));
           if (parsed.applications?.length) setApplications((prev) => mergeApplications(prev, parsed.applications));
           if (parsed.workspaces?.length) setWorkspaces((prev) => mergeById(prev, parsed.workspaces, 'id'));
           if (parsed.feedbackList?.length) setFeedbackList((prev) => mergeById(prev, parsed.feedbackList, 'id'));
@@ -290,15 +338,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (dbProjects && dbProjects.length > 0) {
-          // DB is authoritative: replace temp-id projects with real DB ones, keep local-only items
-          setProjects((prev) => {
-            const dbMap = new Map(dbProjects!.map((p) => [p.id, p]));
-            // Keep local projects that have temp IDs (not yet synced) and merge DB projects
-            const localOnly = prev.filter((p) => p.id.startsWith('proj-') && !dbMap.has(p.id));
-            return [...dbProjects!, ...localOnly].sort((a, b) =>
-              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            );
-          });
+          setProjects((prev) => mergeProjects(prev, dbProjects as Project[]));
         }
       } catch {}
 
@@ -336,7 +376,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (parsed.profiles) setProfiles(mergeById(INITIAL_PROFILES, parsed.profiles, 'id'));
         if (parsed.students) setStudents(mergeById(INITIAL_STUDENTS, parsed.students, 'user_id'));
         if (parsed.businesses) setBusinesses(mergeById(INITIAL_BUSINESSES, parsed.businesses, 'user_id'));
-        if (parsed.projects) setProjects(mergeById(INITIAL_PROJECTS, parsed.projects, 'id'));
+        if (parsed.projects) setProjects(mergeProjects(INITIAL_PROJECTS, parsed.projects));
         if (parsed.applications) setApplications(mergeApplications(INITIAL_APPLICATIONS, parsed.applications));
         if (parsed.workspaces) setWorkspaces(mergeById(INITIAL_WORKSPACES, parsed.workspaces, 'id'));
         if (parsed.feedbackList) setFeedbackList(mergeById(INITIAL_FEEDBACK, parsed.feedbackList, 'id'));
@@ -427,7 +467,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (parsed.profiles) setProfiles(parsed.profiles);
           if (parsed.students) setStudents(parsed.students);
           if (parsed.businesses) setBusinesses(parsed.businesses);
-          if (parsed.projects) setProjects(parsed.projects);
+          if (parsed.projects) setProjects((prev) => mergeProjects(prev, parsed.projects));
           if (parsed.applications) setApplications(parsed.applications);
           if (parsed.workspaces) {
             setWorkspaces((prev) => {
@@ -527,13 +567,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           } else if (data?.type === 'PROJECT_DELETED' && data.projectId) {
             setProjects((prev) => prev.filter((p) => p.id !== data.projectId));
           } else if (data?.type === 'PROJECT_STATUS_CHANGE' && data.project) {
-            setProjects((prev) => {
-              const exists = prev.some((p) => p.id === data.project.id);
-              if (exists) {
-                return prev.map((p) => (p.id === data.project.id ? data.project : p));
-              }
-              return [data.project, ...prev];
-            });
+            setProjects((prev) => mergeProjects(prev, [data.project]));
           } else if (data?.type === 'SYNC_STATE') {
             refreshData();
           }
@@ -1170,10 +1204,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Approved business accounts publish projects live ('open') immediately for student applicants
     const targetStatus: ProjectStatus = currentUser.status === 'approved' ? 'open' : 'pending_approval';
 
-    const tempId = `proj-${Date.now()}`;
+    const projectId = generateUUID();
     const newProject: Project = {
       ...projectData,
-      id: tempId,
+      id: projectId,
       business_id: currentUser.id,
       status: targetStatus,
       applicant_count: 0,
@@ -1182,10 +1216,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       business: currentBusiness || undefined,
     };
 
-    // Optimistically update React Context state
-    setProjects((prev) => [newProject, ...prev.filter((p) => p.id !== tempId)]);
+    // Optimistically merge into Context state
+    setProjects((prev) => mergeProjects(prev, [newProject]));
 
-    // Save to server API & Supabase database — AWAIT to get real DB ID
+    // Save to server API & Supabase database — AWAIT to get authoritative DB version
     let savedProject: Project = newProject;
     try {
       const res = await fetch('/api/projects', {
@@ -1209,11 +1243,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         if (data.project) {
           savedProject = { ...data.project, business: currentBusiness || data.project.business };
-          // Replace temp project with the real DB version, eliminating duplicates
-          setProjects((prev) => {
-            const listWithoutTemp = prev.filter((p) => p.id !== tempId && p.id !== savedProject.id);
-            return [savedProject, ...listWithoutTemp];
-          });
+          setProjects((prev) => mergeProjects(prev, [savedProject]));
         }
       } else {
         const errData = await res.json().catch(() => ({}));
@@ -1223,13 +1253,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.warn('Notice saving project to database:', err);
     }
 
-    // Immediate LocalStorage persist with the saved project (real ID)
+    // Immediate LocalStorage persist with mergeProjects deduplication
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          const updatedProjects = [savedProject, ...(parsed.projects || []).filter((p: any) => p.id !== tempId && p.id !== savedProject.id)];
+          const updatedProjects = mergeProjects(parsed.projects || [], [savedProject]);
           localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, projects: updatedProjects }));
         }
       } catch {}

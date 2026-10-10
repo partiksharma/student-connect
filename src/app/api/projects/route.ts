@@ -24,9 +24,12 @@ export async function GET(req: Request) {
       businesses.forEach((b: any) => bizMap.set(b.user_id, b));
     }
 
-    const enrichedProjects = (projects || []).map((p: any) => {
+    const dedupedMap = new Map();
+    (projects || []).forEach((p: any) => {
+      const cleanTitle = (p.title || '').trim().toLowerCase();
+      const key = p.business_id ? `${p.business_id}::${cleanTitle}` : p.id;
       const biz = bizMap.get(p.business_id);
-      return {
+      const enriched = {
         ...p,
         business: biz ? {
           user_id: biz.user_id,
@@ -41,7 +44,19 @@ export async function GET(req: Request) {
           updated_at: biz.updated_at,
         } : p.business,
       };
+
+      if (!dedupedMap.has(key)) {
+        dedupedMap.set(key, enriched);
+      } else {
+        const existing = dedupedMap.get(key);
+        const isNewer = new Date(enriched.updated_at || enriched.created_at).getTime() > new Date(existing.updated_at || existing.created_at).getTime();
+        if (isNewer) {
+          dedupedMap.set(key, enriched);
+        }
+      }
     });
+
+    const enrichedProjects = Array.from(dedupedMap.values());
 
     return NextResponse.json({ projects: enrichedProjects });
   } catch (err: unknown) {
@@ -75,12 +90,45 @@ export async function POST(req: Request) {
 
     const supabase = getServerSupabaseClient();
     const now = new Date().toISOString();
+    const trimmedTitle = title.trim();
+
+    // Check if an identical project already exists by this business
+    const { data: existingProjects } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('business_id', business_id);
+
+    const match = (existingProjects || []).find(
+      (p: any) => p.title?.trim().toLowerCase() === trimmedTitle.toLowerCase()
+    );
+
+    if (match) {
+      const { data: bizData } = await supabase
+        .from('business_profiles')
+        .select('*')
+        .eq('user_id', business_id)
+        .maybeSingle();
+
+      return NextResponse.json(
+        {
+          success: true,
+          project: {
+            ...match,
+            perks: perks || ['Certificate of Project Completion', 'Recommendation Testimonial'],
+            business: bizData || undefined,
+          },
+          message: 'Project already exists and was retrieved successfully',
+        },
+        { status: 200 }
+      );
+    }
+
     const projectId = generateUUID();
 
     const newProject = {
       id: projectId,
       business_id,
-      title: title.trim(),
+      title: trimmedTitle,
       category: category || 'marketing',
       description: description.trim(),
       deliverables_description: deliverables_description ? deliverables_description.trim() : '',

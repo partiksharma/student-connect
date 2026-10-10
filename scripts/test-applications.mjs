@@ -125,3 +125,100 @@ test('Status update preservation (accepted over pending)', () => {
   assert.equal(result.length, 1);
   assert.equal(result[0].status, 'accepted');
 });
+
+// Project deduplication algorithm
+function mergeProjects(initial = [], incoming = []) {
+  const map = new Map();
+  const idToComposite = new Map();
+
+  const processProj = (proj) => {
+    if (!proj || !proj.title) return;
+    const cleanTitle = proj.title.trim().toLowerCase();
+    const compositeKey = proj.business_id ? `${proj.business_id}::${cleanTitle}` : proj.id;
+    
+    const existing = map.get(compositeKey) || (proj.id && idToComposite.has(proj.id) ? map.get(idToComposite.get(proj.id)) : undefined);
+
+    if (!existing) {
+      map.set(compositeKey, proj);
+      if (proj.id) idToComposite.set(proj.id, compositeKey);
+    } else {
+      const existingIsTemp = String(existing.id).startsWith('proj-') && String(existing.id).length > 10;
+      const incomingIsTemp = String(proj.id).startsWith('proj-') && String(proj.id).length > 10;
+      const chosenId = (!incomingIsTemp && existingIsTemp) ? proj.id : (existingIsTemp ? proj.id : existing.id);
+
+      const isIncomingNewer = new Date(proj.updated_at || proj.created_at).getTime() >= new Date(existing.updated_at || existing.created_at).getTime();
+
+      const merged = {
+        ...existing,
+        ...proj,
+        id: chosenId,
+        business_id: proj.business_id || existing.business_id,
+        status: proj.status && proj.status !== 'pending_approval' ? proj.status : (existing.status || proj.status),
+        applicant_count: Math.max(proj.applicant_count || 0, existing.applicant_count || 0),
+        updated_at: isIncomingNewer ? (proj.updated_at || new Date().toISOString()) : existing.updated_at,
+      };
+
+      map.set(compositeKey, merged);
+      if (chosenId) idToComposite.set(chosenId, compositeKey);
+      if (proj.id && proj.id !== chosenId) idToComposite.set(proj.id, compositeKey);
+    }
+  };
+
+  initial.forEach(processProj);
+  incoming.forEach(processProj);
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+}
+
+test('Project Deduplication: optimistic temp ID merged into persistent server UUID', () => {
+  const optimisticProj = {
+    id: 'proj-1760000000000',
+    business_id: 'biz-user-123',
+    title: 'Brand Refresh & Social Graphics',
+    description: 'Design brand assets',
+    status: 'open',
+    applicant_count: 0,
+    created_at: '2026-03-01T10:00:00.000Z',
+    updated_at: '2026-03-01T10:00:00.000Z',
+  };
+
+  const serverProj = {
+    id: '7b98d249-fa1e-4c7b-b5d1-9f5793bfcf11',
+    business_id: 'biz-user-123',
+    title: 'Brand Refresh & Social Graphics',
+    description: 'Design brand assets',
+    status: 'open',
+    applicant_count: 1,
+    created_at: '2026-03-01T10:00:00.000Z',
+    updated_at: '2026-03-01T10:00:05.000Z',
+  };
+
+  const result = mergeProjects([optimisticProj], [serverProj]);
+
+  assert.equal(result.length, 1, 'Should eliminate duplicate project');
+  assert.equal(result[0].id, '7b98d249-fa1e-4c7b-b5d1-9f5793bfcf11', 'Should retain authoritative server UUID');
+  assert.equal(result[0].applicant_count, 1);
+});
+
+test('Project Deduplication: different projects from same business are preserved', () => {
+  const projA = {
+    id: 'proj-a',
+    business_id: 'biz-user-123',
+    title: 'Project A: Web Dev',
+    status: 'open',
+    created_at: '2026-03-01T10:00:00.000Z',
+  };
+
+  const projB = {
+    id: 'proj-b',
+    business_id: 'biz-user-123',
+    title: 'Project B: SEO Audit',
+    status: 'open',
+    created_at: '2026-03-01T11:00:00.000Z',
+  };
+
+  const result = mergeProjects([projA], [projB]);
+  assert.equal(result.length, 2, 'Should preserve both unique project listings');
+});
