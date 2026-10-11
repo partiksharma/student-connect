@@ -60,20 +60,20 @@ export function Modal({
           maxWidths[maxWidth]
         )}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
-            {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-5 border-b border-slate-100 dark:border-slate-800">
+          <div className="pr-2">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white break-words">{title}</h3>
+            {description && <p className="text-xs text-slate-500 mt-0.5 break-words">{description}</p>}
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto">{children}</div>
+        <div className="p-4 sm:p-6 overflow-y-auto">{children}</div>
       </div>
     </div>
   );

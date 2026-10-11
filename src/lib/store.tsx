@@ -415,6 +415,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
 
+    // Check active Supabase Auth session (from Google OAuth or password session)
+    let authListenerSub: { unsubscribe: () => void } | null = null;
+    try {
+      const supabaseAuth = createClient();
+      supabaseAuth.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          const authUserId = session.user.id;
+          setCurrentUserId(authUserId);
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem(CURRENT_USER_KEY, authUserId);
+            localStorage.setItem(CURRENT_USER_KEY, authUserId);
+          }
+          refreshData();
+        }
+      });
+
+      const { data: authListener } = supabaseAuth.auth.onAuthStateChange((event, session) => {
+        if (session?.user) {
+          const authUserId = session.user.id;
+          setCurrentUserId(authUserId);
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem(CURRENT_USER_KEY, authUserId);
+            localStorage.setItem(CURRENT_USER_KEY, authUserId);
+          }
+          refreshData();
+        } else if (event === 'SIGNED_OUT') {
+          if (typeof window !== 'undefined' && !localStorage.getItem('studentconnect_admin_secret')) {
+            setCurrentUserId('');
+            sessionStorage.removeItem(CURRENT_USER_KEY);
+            localStorage.removeItem(CURRENT_USER_KEY);
+          }
+        }
+      });
+      authListenerSub = authListener.subscription;
+    } catch (authErr) {
+      console.warn('Notice checking Supabase auth session:', authErr);
+    }
+
     setIsInitialized(true);
 
     // Supabase Realtime channel subscription (both Broadcast & Postgres Changes)
@@ -580,6 +618,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(syncInterval);
+      if (authListenerSub) {
+        authListenerSub.unsubscribe();
+      }
       if (realtimeChannel) {
         try {
           const supabase = createClient();
@@ -857,6 +898,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUserId('');
     if (typeof window !== 'undefined') {
       localStorage.removeItem(CURRENT_USER_KEY);
+      sessionStorage.removeItem(CURRENT_USER_KEY);
+      localStorage.removeItem('studentconnect_admin_secret');
+      try {
+        const supabase = createClient();
+        supabase.auth.signOut().catch(() => {});
+      } catch {}
     }
   };
 

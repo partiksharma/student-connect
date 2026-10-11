@@ -299,11 +299,11 @@ export default function ProjectDetailPage() {
                 <span>{applyError}</span>
                 {!currentUser && (
                   <div className="flex gap-2 pt-1">
-                    <Link href="/auth/login?role=student" className="underline font-bold hover:text-red-900">
+                    <Link href="/login" className="underline font-bold hover:text-red-900">
                       Log In as Student
                     </Link>
                     <span>•</span>
-                    <Link href="/auth/register?role=student" className="underline font-bold hover:text-red-900">
+                    <Link href="/register?role=student" className="underline font-bold hover:text-red-900">
                       Register
                     </Link>
                   </div>

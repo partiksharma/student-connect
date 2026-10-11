@@ -45,7 +45,7 @@ export default function StudentApplicationsPage() {
             return (
               <div
                 key={app.id}
-                className="bg-white rounded-3xl p-6 border border-[#E5DFD5] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-[#0D3D2B]/40 transition-colors"
+                className="bg-white rounded-3xl p-5 sm:p-6 border border-[#E5DFD5] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6 hover:border-[#0D3D2B]/40 transition-colors"
               >
                 <div className="space-y-3 max-w-2xl">
                   <div className="flex flex-wrap items-center gap-2">
@@ -82,12 +82,12 @@ export default function StudentApplicationsPage() {
                   </div>
 
                   <div>
-                    <h3 className="font-bold text-base text-[#111C16]">
+                    <h3 className="font-bold text-base text-[#111C16] break-words">
                       {app.project?.title || 'Project Application'}
                     </h3>
                     <div className="text-xs text-stone-500 flex items-center gap-2 mt-0.5 font-medium">
-                      <Building className="w-3.5 h-3.5 text-[#0D3D2B]" />
-                      <span>{app.project?.business?.business_name || 'Small Business Partner'}</span>
+                      <Building className="w-3.5 h-3.5 text-[#0D3D2B] shrink-0" />
+                      <span className="break-words">{app.project?.business?.business_name || 'Small Business Partner'}</span>
                     </div>
                   </div>
 
@@ -95,22 +95,22 @@ export default function StudentApplicationsPage() {
                     <span className="font-bold text-[#0D3D2B] block mb-1">
                       Your pitch note:
                     </span>
-                    <p className="italic">{app.pitch_note}</p>
+                    <p className="italic break-words">{app.pitch_note}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0 w-full md:w-auto">
                   {isAccepted && ws && (
-                    <Link href={`/workspace/${ws.id}`}>
-                      <Button variant="primary" size="md">
+                    <Link href={`/workspace/${ws.id}`} className="flex-1 sm:flex-none">
+                      <Button variant="primary" size="md" className="w-full sm:w-auto">
                         Open Workspace
                         <ArrowRight className="w-4 h-4 ml-1.5" />
                       </Button>
                     </Link>
                   )}
 
-                  <Link href={`/projects/${app.project_id}`}>
-                    <Button variant="outline" size="md">
+                  <Link href={`/projects/${app.project_id}`} className="flex-1 sm:flex-none">
+                    <Button variant="outline" size="md" className="w-full sm:w-auto">
                       View Project
                     </Button>
                   </Link>

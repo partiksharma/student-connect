@@ -89,7 +89,7 @@ export default function BusinessApplicantsReviewPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8">
       <Link
         href="/business/dashboard"
         className="inline-flex items-center text-xs font-bold text-[#0D3D2B] hover:text-[#08281A] transition-colors"
@@ -99,7 +99,7 @@ export default function BusinessApplicantsReviewPage() {
       </Link>
 
       {/* Header */}
-      <div className="bg-white rounded-3xl p-8 border border-[#E5DFD5] shadow-xs space-y-2">
+      <div className="bg-white rounded-3xl p-5 sm:p-8 border border-[#E5DFD5] shadow-xs space-y-2">
         <div className="flex items-center gap-2">
           <Badge variant="primary" size="sm">
             Applicant Review
@@ -108,7 +108,7 @@ export default function BusinessApplicantsReviewPage() {
             {projectApps.length} student {projectApps.length === 1 ? 'applicant' : 'applicants'}
           </span>
         </div>
-        <h1 className="text-2xl font-black text-[#111C16]">
+        <h1 className="text-xl sm:text-2xl font-black text-[#111C16] break-words">
           {project.title}
         </h1>
         <p className="text-xs text-stone-500 font-medium">
@@ -131,11 +131,14 @@ export default function BusinessApplicantsReviewPage() {
             const isAccepted = app.status === 'accepted';
             const isPending = app.status === 'pending';
             const isRejected = app.status === 'rejected';
+            const matchedWorkspace = workspaces.find(
+              (w) => w.project_id === projectId && w.student_id === app.student_id
+            );
 
             return (
               <div
                 key={app.id}
-                className={`bg-white rounded-3xl p-8 border transition-all duration-200 space-y-6 ${
+                className={`bg-white rounded-3xl p-5 sm:p-8 border transition-all duration-200 space-y-4 sm:space-y-6 ${
                   isAccepted
                     ? 'border-emerald-600/50 shadow-md shadow-emerald-950/5'
                     : 'border-[#E5DFD5]'
@@ -143,21 +146,21 @@ export default function BusinessApplicantsReviewPage() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   {/* Student Info */}
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-start sm:items-center gap-3 sm:gap-4">
                     {student?.avatar_url ? (
                       <img
                         src={student.avatar_url}
                         alt={student.full_name}
-                        className="w-14 h-14 rounded-2xl object-cover border border-[#E5DFD5]"
+                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover border border-[#E5DFD5] shrink-0"
                       />
                     ) : (
-                      <div className="w-14 h-14 rounded-2xl bg-[#E6F3EC] text-[#0D3D2B] flex items-center justify-center font-bold text-lg">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#E6F3EC] text-[#0D3D2B] flex items-center justify-center font-bold text-base sm:text-lg shrink-0">
                         {student?.full_name?.charAt(0) || 'S'}
                       </div>
                     )}
 
-                    <div>
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-bold text-base text-[#111C16]">
                           {student?.full_name || 'Applicant'}
                         </h3>
@@ -194,10 +197,10 @@ export default function BusinessApplicantsReviewPage() {
                   </div>
 
                   {/* External Links */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     {student?.user_id && (
-                      <Link href={`/p/${student.user_id}`} target="_blank">
-                        <Button size="sm" variant="outline">
+                      <Link href={`/p/${student.user_id}`} target="_blank" className="w-full sm:w-auto">
+                        <Button size="sm" variant="outline" className="w-full sm:w-auto justify-center">
                           <ExternalLink className="w-3.5 h-3.5 mr-1" />
                           View Portfolio
                         </Button>
@@ -207,11 +210,11 @@ export default function BusinessApplicantsReviewPage() {
                 </div>
 
                 {/* Pitch Note Box */}
-                <div className="p-5 rounded-2xl bg-[#FAF7F2] border border-[#E5DFD5] space-y-2">
+                <div className="p-4 sm:p-5 rounded-2xl bg-[#FAF7F2] border border-[#E5DFD5] space-y-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-[#0D3D2B]">
                     Student Proposal / Pitch:
                   </span>
-                  <p className="text-xs sm:text-sm text-stone-700 italic leading-relaxed font-medium">
+                  <p className="text-xs sm:text-sm text-stone-700 italic leading-relaxed font-medium break-words whitespace-pre-line">
                     &ldquo;{app.pitch_note}&rdquo;
                   </p>
                 </div>
@@ -232,11 +235,11 @@ export default function BusinessApplicantsReviewPage() {
 
                 {/* Decision Actions */}
                 {isPending && (
-                  <div className="pt-4 border-t border-stone-100 flex items-center justify-end gap-3">
+                  <div className="pt-4 border-t border-stone-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                      className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 w-full sm:w-auto justify-center"
                       disabled={!!processingId}
                       onClick={() => handleReject(app.id)}
                     >
@@ -250,6 +253,7 @@ export default function BusinessApplicantsReviewPage() {
                     <Button
                       size="sm"
                       variant="primary"
+                      className="w-full sm:w-auto justify-center"
                       disabled={!!processingId}
                       onClick={() => handleAccept(app.id, student?.full_name || 'Student')}
                     >
@@ -260,6 +264,18 @@ export default function BusinessApplicantsReviewPage() {
                       )}
                       Accept & Start Project Workspace
                     </Button>
+                  </div>
+                )}
+
+                {/* Direct link to Workspace for Accepted Students */}
+                {isAccepted && matchedWorkspace && (
+                  <div className="pt-4 border-t border-stone-100 flex items-center justify-end">
+                    <Link href={`/workspace/${matchedWorkspace.id}`} className="w-full sm:w-auto">
+                      <Button size="sm" variant="primary" className="w-full sm:w-auto justify-center">
+                        <span>Open Project Workspace</span>
+                        <ArrowRight className="w-4 h-4 ml-1.5" />
+                      </Button>
+                    </Link>
                   </div>
                 )}
               </div>

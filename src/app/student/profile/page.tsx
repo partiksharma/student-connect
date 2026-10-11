@@ -80,11 +80,11 @@ export default function StudentProfilePage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8">
       {/* Header with Public Preview Link */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#111C16]">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#111C16]">
             Student Profile & Portfolio
           </h1>
           <p className="text-xs text-stone-500 mt-1 font-medium">
@@ -93,8 +93,8 @@ export default function StudentProfilePage() {
         </div>
 
         {currentUser && (
-          <Link href={`/p/${currentUser.id}`} target="_blank">
-            <Button variant="outline" size="sm">
+          <Link href={`/p/${currentUser.id}`} target="_blank" className="w-full sm:w-auto">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto justify-center">
               <ExternalLink className="w-4 h-4 mr-1.5" />
               View Public Portfolio
             </Button>
@@ -104,7 +104,7 @@ export default function StudentProfilePage() {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Basic Information Card */}
-        <div className="bg-white rounded-3xl p-8 border border-[#E5DFD5] shadow-xs space-y-5">
+        <div className="bg-white rounded-3xl p-5 sm:p-8 border border-[#E5DFD5] shadow-xs space-y-5">
           <h2 className="text-base font-bold text-[#111C16] flex items-center gap-2">
             <GraduationCap className="w-5 h-5 text-[#0D3D2B]" />
             Education & Bio
@@ -192,7 +192,7 @@ export default function StudentProfilePage() {
         </div>
 
         {/* Skills Tag Editor */}
-        <div className="bg-white rounded-3xl p-8 border border-[#E5DFD5] shadow-xs space-y-4">
+        <div className="bg-white rounded-3xl p-5 sm:p-8 border border-[#E5DFD5] shadow-xs space-y-4">
           <h2 className="text-base font-bold text-[#111C16] flex items-center gap-2">
             <Award className="w-5 h-5 text-[#0D3D2B]" />
             Skills & Competencies
@@ -219,7 +219,7 @@ export default function StudentProfilePage() {
             ))}
           </div>
 
-          <div className="flex gap-2 max-w-md pt-2">
+          <div className="flex flex-col sm:flex-row gap-2 max-w-md pt-2">
             <input
               type="text"
               value={newSkillInput}
@@ -233,7 +233,7 @@ export default function StudentProfilePage() {
               placeholder="e.g. Instagram Reels, Figma, Python..."
               className="flex-1 text-xs p-2.5 rounded-xl border border-[#E5DFD5] bg-white text-stone-900 outline-none focus:ring-2 focus:ring-[#0D3D2B]"
             />
-            <Button type="button" size="sm" variant="primary" onClick={handleAddSkill}>
+            <Button type="button" size="sm" variant="primary" onClick={handleAddSkill} className="w-full sm:w-auto justify-center">
               <Plus className="w-4 h-4 mr-1" />
               Add
             </Button>
@@ -241,15 +241,15 @@ export default function StudentProfilePage() {
         </div>
 
         {/* Save Button */}
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
           {isSaved && (
             <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0D3D2B]">
               <Check className="w-4 h-4" />
               Profile updated successfully!
             </div>
           )}
-          <div className="ml-auto">
-            <Button type="submit" size="md" variant="primary" isLoading={isSaving}>
+          <div className="sm:ml-auto w-full sm:w-auto">
+            <Button type="submit" size="md" variant="primary" isLoading={isSaving} className="w-full sm:w-auto px-6 py-2.5">
               Save Profile
             </Button>
           </div>

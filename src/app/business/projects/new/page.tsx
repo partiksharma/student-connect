@@ -115,7 +115,7 @@ export default function NewProjectPostingPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-3xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8">
       <Link
         href="/business/dashboard"
         className="inline-flex items-center text-xs font-bold text-[#0D3D2B] hover:text-[#08281A] transition-colors"
@@ -129,7 +129,7 @@ export default function NewProjectPostingPage() {
           <PlusCircle className="w-3.5 h-3.5 text-[#0D3D2B]" />
           <span>Small Business Project Wizard</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-black text-[#111C16] tracking-tight">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#111C16] tracking-tight">
           Post a New Project Need
         </h1>
         <p className="text-xs text-stone-600 font-medium mt-1">
@@ -147,7 +147,7 @@ export default function NewProjectPostingPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Project Core Details */}
-        <div className="bg-white rounded-3xl p-8 border border-[#E5DFD5] shadow-xs space-y-5">
+        <div className="bg-white rounded-3xl p-5 sm:p-8 border border-[#E5DFD5] shadow-xs space-y-5">
           <div>
             <label className="block text-xs font-bold text-stone-800 mb-1">
               Project Title
@@ -248,7 +248,7 @@ export default function NewProjectPostingPage() {
         </div>
 
         {/* Skills Required */}
-        <div className="bg-white rounded-3xl p-8 border border-[#E5DFD5] shadow-xs space-y-4">
+        <div className="bg-white rounded-3xl p-5 sm:p-8 border border-[#E5DFD5] shadow-xs space-y-4">
           <h2 className="text-base font-extrabold text-[#111C16]">
             Skills or Tools Desired
           </h2>
@@ -270,7 +270,7 @@ export default function NewProjectPostingPage() {
             ))}
           </div>
 
-          <div className="flex gap-2 max-w-md pt-2">
+          <div className="flex flex-col sm:flex-row gap-2 max-w-md pt-2">
             <input
               type="text"
               value={newSkillInput}
@@ -289,6 +289,7 @@ export default function NewProjectPostingPage() {
               size="sm"
               variant="primary"
               onClick={handleAddSkill}
+              className="w-full sm:w-auto justify-center"
             >
               <Plus className="w-4 h-4 mr-1" />
               Add
@@ -297,13 +298,13 @@ export default function NewProjectPostingPage() {
         </div>
 
         {/* Submit */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <Link href="/business/dashboard">
-            <Button type="button" variant="outline" size="md">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-2 w-full sm:w-auto">
+          <Link href="/business/dashboard" className="w-full sm:w-auto">
+            <Button type="button" variant="outline" size="md" className="w-full sm:w-auto justify-center">
               Cancel
             </Button>
           </Link>
-          <Button type="submit" size="md" variant="primary" isLoading={isSubmitting} className="px-6 py-2.5">
+          <Button type="submit" size="md" variant="primary" isLoading={isSubmitting} className="w-full sm:w-auto justify-center px-6 py-2.5">
             Submit Project for Approval
           </Button>
         </div>

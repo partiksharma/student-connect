@@ -20,10 +20,10 @@ export function ProjectCard({ project, onApply, showApplyButton = true }: Projec
   const isCompleted = project.status === 'completed';
 
   return (
-    <div className="group relative bg-white rounded-3xl border border-[#E5DFD5] hover:border-[#0D3D2B]/50 p-7 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-950/5 flex flex-col justify-between">
+    <div className="group relative bg-white rounded-3xl border border-[#E5DFD5] hover:border-[#0D3D2B]/50 p-5 sm:p-7 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-950/5 flex flex-col justify-between">
       <div>
         {/* Header Badges */}
-        <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <span className={`text-xs px-3 py-1 rounded-full font-bold border ${getCategoryBadgeClass(project.category)}`}>
             {formatCategoryName(project.category)}
           </span>
@@ -55,16 +55,16 @@ export function ProjectCard({ project, onApply, showApplyButton = true }: Projec
             <img
               src={project.business.logo_url}
               alt={project.business.business_name}
-              className="w-6 h-6 rounded-full object-cover border border-[#E5DFD5]"
+              className="w-6 h-6 rounded-full object-cover border border-[#E5DFD5] shrink-0"
             />
           ) : (
-            <Building className="w-4 h-4 text-[#0D3D2B]" />
+            <Building className="w-4 h-4 text-[#0D3D2B] shrink-0" />
           )}
-          <span className="text-xs font-bold text-[#0D3D2B]">
+          <span className="text-xs font-bold text-[#0D3D2B] truncate">
             {project.business?.business_name || 'Verified Small Business'}
           </span>
           {project.business?.location && (
-            <span className="text-[11px] text-stone-400 font-medium">• {project.business.location}</span>
+            <span className="text-[11px] text-stone-400 font-medium truncate">• {project.business.location}</span>
           )}
         </div>
 
@@ -84,7 +84,7 @@ export function ProjectCard({ project, onApply, showApplyButton = true }: Projec
         {project.deliverables_description && (
           <div className="mb-4 p-3 rounded-2xl bg-[#FAF8F3] border border-[#E5DFD5] text-[11px] text-stone-700">
             <span className="font-bold text-[#0D3D2B] block mb-1">Key Deliverables:</span>
-            <p className="line-clamp-2 whitespace-pre-line">{project.deliverables_description}</p>
+            <p className="line-clamp-2 whitespace-pre-line break-words">{project.deliverables_description}</p>
           </div>
         )}
 
@@ -107,7 +107,7 @@ export function ProjectCard({ project, onApply, showApplyButton = true }: Projec
       </div>
 
       {/* Footer & Commitment Meta */}
-      <div className="pt-4 border-t border-[#E5DFD5] flex items-center justify-between gap-2">
+      <div className="pt-4 border-t border-[#E5DFD5] flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex items-center gap-3 text-xs text-stone-600 font-medium">
           <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
             <Clock className="w-3.5 h-3.5 text-[#16563D] shrink-0" />
@@ -119,7 +119,7 @@ export function ProjectCard({ project, onApply, showApplyButton = true }: Projec
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           {showApplyButton && (project.status === 'open' || project.status === 'pending_approval') && onApply && (
             <Button size="sm" variant="primary" onClick={() => onApply(project)}>
               Apply Now

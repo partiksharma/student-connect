@@ -72,25 +72,25 @@ export default function PublicStudentProfilePage() {
       : null;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8">
       {/* Header Banner */}
-      <div className="bg-white rounded-3xl p-8 border border-[#E5DFD5] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
+      <div className="bg-white rounded-3xl p-5 sm:p-8 border border-[#E5DFD5] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 w-full sm:w-auto">
           {student.avatar_url ? (
             <img
               src={student.avatar_url}
               alt={student.full_name}
-              className="w-20 h-20 rounded-3xl object-cover border-2 border-[#0D3D2B]/20 shadow-xs"
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl object-cover border-2 border-[#0D3D2B]/20 shadow-xs shrink-0"
             />
           ) : (
-            <div className="w-20 h-20 rounded-3xl bg-[#E6F3EC] text-[#0D3D2B] flex items-center justify-center font-extrabold text-2xl border border-[#E5DFD5]">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-[#E6F3EC] text-[#0D3D2B] flex items-center justify-center font-extrabold text-xl sm:text-2xl border border-[#E5DFD5] shrink-0">
               {student.full_name.charAt(0)}
             </div>
           )}
 
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-black text-[#111C16]">
+              <h1 className="text-xl sm:text-2xl font-black text-[#111C16] break-words">
                 {student.full_name}
               </h1>
               <div className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#E6F3EC] text-[#0D3D2B] border border-[#CDE5D7]">
@@ -135,7 +135,7 @@ export default function PublicStudentProfilePage() {
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#FAF7F2] hover:bg-[#EFE9DE] text-[#0D3D2B] border border-[#E5DFD5] text-xs font-bold transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#FAF7F2] hover:bg-[#EFE9DE] text-[#0D3D2B] border border-[#E5DFD5] text-xs font-bold transition-colors w-full sm:w-auto justify-center"
             >
               <ExternalLink className="w-3.5 h-3.5 text-[#0D3D2B]" />
               <span>Link {idx + 1}</span>

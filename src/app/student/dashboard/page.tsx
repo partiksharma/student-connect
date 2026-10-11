@@ -148,7 +148,7 @@ export default function StudentDashboardPage() {
       })}
 
       {/* Welcome Header */}
-      <div className="bg-[#FAF7F2] rounded-3xl p-8 border border-[#E5DFD5] shadow-xs relative overflow-hidden">
+      <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E5DFD5] shadow-xs relative overflow-hidden">
         <div className="max-w-2xl relative z-10 space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#E6F3EC] border border-[#CDE5D7] text-xs font-bold text-[#0D3D2B]">
             <GraduationCap className="w-3.5 h-3.5 text-[#0D3D2B]" />
@@ -177,8 +177,8 @@ export default function StudentDashboardPage() {
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white p-6 rounded-3xl border border-[#E5DFD5] shadow-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E5DFD5] shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-500">Active Workspaces</span>
             <Layers className="w-4 h-4 text-[#0D3D2B]" />
@@ -189,7 +189,7 @@ export default function StudentDashboardPage() {
           <span className="text-[11px] text-stone-400 font-medium">Live project collaborations</span>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-[#E5DFD5] shadow-xs">
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E5DFD5] shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-500">Applications Sent</span>
             <Briefcase className="w-4 h-4 text-[#16563D]" />
@@ -202,7 +202,7 @@ export default function StudentDashboardPage() {
           </span>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-[#E5DFD5] shadow-xs">
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E5DFD5] shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-500">Completed Projects</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -213,7 +213,7 @@ export default function StudentDashboardPage() {
           <span className="text-[11px] text-stone-400 font-medium">Verified portfolio credentials</span>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-[#E5DFD5] shadow-xs">
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E5DFD5] shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-500">Weekly Availability</span>
             <Clock className="w-4 h-4 text-[#16563D]" />
@@ -237,11 +237,11 @@ export default function StudentDashboardPage() {
         </div>
 
         {activeWorkspaces.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {activeWorkspaces.map((ws) => (
               <div
                 key={ws.id}
-                className="bg-white rounded-3xl p-7 border border-[#E5DFD5] shadow-xs space-y-4 hover:border-[#0D3D2B]/50 transition-colors"
+                className="bg-white rounded-3xl p-5 sm:p-7 border border-[#E5DFD5] shadow-xs space-y-4 hover:border-[#0D3D2B]/50 transition-colors"
               >
                 <div className="flex items-center justify-between">
                   <Badge variant="primary" size="sm">
@@ -261,7 +261,7 @@ export default function StudentDashboardPage() {
                   </p>
                 </div>
 
-                <div className="pt-3 flex items-center justify-between border-t border-[#E5DFD5]">
+                <div className="pt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#E5DFD5]">
                   <div className="flex items-center gap-1.5 text-xs text-[#0D3D2B] font-bold">
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#16563D]" />
                     <span>Direct Collaboration</span>
@@ -277,7 +277,7 @@ export default function StudentDashboardPage() {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-3xl p-8 border border-[#E5DFD5] text-center space-y-3">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E5DFD5] text-center space-y-3">
             <Layers className="w-8 h-8 text-stone-400 mx-auto" />
             <h3 className="text-sm font-bold text-stone-800">No active workspaces</h3>
             <p className="text-xs text-stone-500 max-w-sm mx-auto">
@@ -308,7 +308,7 @@ export default function StudentDashboardPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {recommendedProjects.map((project) => (
             <ProjectCard key={project.id} project={project} />
           ))}

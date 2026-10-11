@@ -115,10 +115,10 @@ export default function BusinessDashboardPage() {
   const pendingApplicants = allMyApplications.filter((a) => a.status === 'pending');
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-10">
       {/* Account Verification Status Banners */}
       {currentUser.status === 'pending_approval' && (
-        <div className="bg-amber-50 border-2 border-amber-300 p-6 rounded-3xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-amber-50 border-2 border-amber-300 p-4 sm:p-6 rounded-3xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 font-bold flex items-center justify-center shrink-0">
               <Clock className="w-6 h-6 text-amber-600 animate-pulse" />
@@ -166,7 +166,7 @@ export default function BusinessDashboardPage() {
       )}
 
       {/* Business Welcome Banner */}
-      <div className="bg-[#FAF7F2] rounded-3xl p-8 border border-[#E5DFD5] shadow-xs relative overflow-hidden">
+      <div className="bg-[#FAF7F2] rounded-3xl p-5 sm:p-8 border border-[#E5DFD5] shadow-xs relative overflow-hidden">
         <div className="max-w-2xl relative z-10 space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E6F3EC] border border-[#CDE5D7] text-xs font-bold text-[#0D3D2B]">
             <Building className="w-3.5 h-3.5 text-[#0D3D2B]" />
@@ -248,7 +248,7 @@ export default function BusinessDashboardPage() {
 
       {/* Projects List with Applicant Counters */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-black text-[#111C16]">
               Your Project Postings
@@ -258,7 +258,7 @@ export default function BusinessDashboardPage() {
             </p>
           </div>
           <Link href="/business/projects/new">
-            <Button size="sm" variant="primary">
+            <Button size="sm" variant="primary" className="w-full sm:w-auto">
               <PlusCircle className="w-4 h-4 mr-1.5 text-emerald-200" />
               New Project
             </Button>
@@ -275,7 +275,7 @@ export default function BusinessDashboardPage() {
               return (
                 <div
                   key={proj.id}
-                  className="bg-white text-[#111C16] rounded-3xl p-6 border border-[#E5DFD5] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-[#0D3D2B]/40 transition-colors"
+                  className="bg-white text-[#111C16] rounded-3xl p-5 sm:p-6 border border-[#E5DFD5] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5 hover:border-[#0D3D2B]/40 transition-colors"
                 >
                   <div className="space-y-2 max-w-2xl">
                     <div className="flex flex-wrap items-center gap-2">
@@ -355,17 +355,17 @@ export default function BusinessDashboardPage() {
       {/* Completed Collaborations & Leave Review Section */}
       {completedWorkspaces.length > 0 && (
         <div className="space-y-4 pt-6 border-t border-[#E5DFD5]">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-black text-[#0D3D2B] flex items-center gap-2">
-                <Award className="w-5 h-5 text-[#0D3D2B]" />
-                Completed Projects & Student Reviews
+                <Award className="w-5 h-5 text-[#0D3D2B] shrink-0" />
+                <span>Completed Projects & Reviews</span>
               </h2>
               <p className="text-xs text-stone-600 font-medium">
                 Give feedback and ratings to students who completed your project deliverables.
               </p>
             </div>
-            <span className="px-3 py-1 rounded-full bg-[#E6F3EC] text-[#0D3D2B] font-bold text-xs">
+            <span className="px-3 py-1 rounded-full bg-[#E6F3EC] text-[#0D3D2B] font-bold text-xs self-start sm:self-auto">
               {completedWorkspaces.length} Completed
             </span>
           </div>

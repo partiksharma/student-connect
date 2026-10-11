@@ -40,7 +40,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[#E5DFD5] bg-[#F7F4EE]/95 backdrop-blur-md transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo & Main Branding */}
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-3 group">
@@ -165,7 +165,7 @@ export function Navbar() {
                   </button>
 
                   {isNotifDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-3xl border border-[#E5DFD5] shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-3">
+                    <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-white rounded-3xl border border-[#E5DFD5] shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-3">
                       <div className="flex items-center justify-between pb-2 border-b border-stone-100">
                         <div className="flex items-center gap-1.5 font-black text-xs text-[#0D3D2B]">
                           <Bell className="w-3.5 h-3.5 text-[#16563D]" />
@@ -262,7 +262,7 @@ export function Navbar() {
 
                   {/* Account Actions Dropdown */}
                   {isRoleDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-3xl border border-[#E5DFD5] shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-64 max-w-xs bg-white rounded-3xl border border-[#E5DFD5] shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
                       {/* User Info Header */}
                       <div className="p-3 border-b border-stone-100 bg-[#FAF7F2] rounded-2xl mb-2">
                         <div className="font-extrabold text-xs text-stone-900 truncate">
@@ -397,54 +397,86 @@ export function Navbar() {
             >
               Find Projects
             </Link>
+            <Link
+              href="/about"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block px-4 py-2 rounded-xl text-xs font-semibold text-stone-600 hover:bg-[#EFE9DE]"
+            >
+              About StudentConnect
+            </Link>
+            <Link
+              href="/creator"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block px-4 py-2 rounded-xl text-xs font-semibold text-stone-600 hover:bg-[#EFE9DE]"
+            >
+              Meet the Creator
+            </Link>
+            <Link
+              href="/contact"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block px-4 py-2 rounded-xl text-xs font-semibold text-stone-600 hover:bg-[#EFE9DE]"
+            >
+              Contact Support
+            </Link>
+
             {currentUser?.role === 'student' && (
               <>
-                <Link
-                  href="/student/dashboard"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-[#EFE9DE]"
-                >
-                  Student Dashboard
-                </Link>
-                <Link
-                  href="/student/applications"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-[#EFE9DE]"
-                >
-                  Applications
-                </Link>
-                <Link
-                  href="/student/profile"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-[#EFE9DE]"
-                >
-                  Profile
-                </Link>
+                <div className="pt-2 border-t border-stone-200/60">
+                  <div className="px-4 text-[10px] font-black uppercase tracking-wider text-[#0D3D2B] mb-1">
+                    Student Workspace
+                  </div>
+                  <Link
+                    href="/student/dashboard"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-[#EFE9DE]"
+                  >
+                    Student Dashboard
+                  </Link>
+                  <Link
+                    href="/student/applications"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-[#EFE9DE]"
+                  >
+                    Applications
+                  </Link>
+                  <Link
+                    href="/student/profile"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-[#EFE9DE]"
+                  >
+                    Profile
+                  </Link>
+                </div>
               </>
             )}
             {currentUser?.role === 'business' && (
               <>
-                <Link
-                  href="/business/dashboard"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-[#EFE9DE]"
-                >
-                  Business Dashboard
-                </Link>
-                <Link
-                  href="/business/projects"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-[#EFE9DE]"
-                >
-                  My Projects
-                </Link>
-                <Link
-                  href="/business/projects/new"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-[#EFE9DE]"
-                >
-                  Post a Project
-                </Link>
+                <div className="pt-2 border-t border-stone-200/60">
+                  <div className="px-4 text-[10px] font-black uppercase tracking-wider text-[#0D3D2B] mb-1">
+                    Client Hub
+                  </div>
+                  <Link
+                    href="/business/dashboard"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-[#EFE9DE]"
+                  >
+                    Business Dashboard
+                  </Link>
+                  <Link
+                    href="/business/projects"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-[#EFE9DE]"
+                  >
+                    My Projects
+                  </Link>
+                  <Link
+                    href="/business/projects/new"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-[#EFE9DE]"
+                  >
+                    Post a Project
+                  </Link>
+                </div>
               </>
             )}
 
@@ -472,7 +504,7 @@ export function Navbar() {
                     logout();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-red-700 hover:bg-red-50"
+                  className="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-red-700 hover:bg-red-50 cursor-pointer"
                 >
                   Log Out
                 </button>
