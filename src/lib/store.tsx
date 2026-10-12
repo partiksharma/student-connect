@@ -432,7 +432,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const savedUserId = sessionStorage.getItem(CURRENT_USER_KEY) || localStorage.getItem(CURRENT_USER_KEY);
       if (savedUserId) {
-        setCurrentUserId(savedUserId);
+        // If an admin ID is stored, verify active server session before restoring
+        fetch('/api/admin/session')
+          .then((res) => {
+            if (res.ok) {
+              return res.json().then((data) => {
+                if (data.authenticated && data.user?.id) {
+                  setCurrentUserId(data.user.id);
+                }
+              });
+            } else {
+              if (savedUserId === '441a1482-929a-4311-a8f7-f2b69ae22835') {
+                sessionStorage.removeItem(CURRENT_USER_KEY);
+                localStorage.removeItem(CURRENT_USER_KEY);
+                setCurrentUserId('');
+              } else {
+                setCurrentUserId(savedUserId);
+              }
+            }
+          })
+          .catch(() => {
+            setCurrentUserId(savedUserId);
+          });
       }
     } catch {}
 
@@ -462,7 +483,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
           refreshData();
         } else if (event === 'SIGNED_OUT') {
-          if (typeof window !== 'undefined' && !localStorage.getItem('studentconnect_admin_secret')) {
+          if (typeof window !== 'undefined') {
             setCurrentUserId('');
             sessionStorage.removeItem(CURRENT_USER_KEY);
             localStorage.removeItem(CURRENT_USER_KEY);
@@ -738,6 +759,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loginAsRole = (role: UserRole) => {
+    // Security: Admin role cannot be assumed via client-side role switching
+    if (role === 'admin') {
+      return;
+    }
     const user = profiles.find((p) => p.role === role && p.status === 'approved');
     if (user) {
       setCurrentUserId(user.id);
@@ -751,27 +776,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loginWithEmail = async (emailOrId: string, password?: string): Promise<Profile | null> => {
     const cleanInput = emailOrId.trim().toLowerCase();
 
-    // Check for administrator login
-    if (cleanInput === 'admin' || cleanInput === 'admin@studentconnect.org' || cleanInput === 'admin@studentconnect.com') {
-      let adminProfile = profiles.find((p) => p.role === 'admin' || p.email === 'admin@studentconnect.org');
-      if (!adminProfile) {
-        adminProfile = {
-          id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-          email: 'admin@studentconnect.org',
-          role: 'admin',
-          status: 'approved',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        setProfiles((prev) => [...prev, adminProfile!]);
+    // Check for administrator account login via secure admin auth
+    if (cleanInput === 'partiksharmabscc@gmail.com') {
+      if (password) {
+        try {
+          const res = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cleanInput, password }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.user) {
+              setCurrentUserId(data.user.id);
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem(CURRENT_USER_KEY, data.user.id);
+                localStorage.setItem(CURRENT_USER_KEY, data.user.id);
+              }
+              return data.user as Profile;
+            }
+          }
+        } catch {}
       }
-      setCurrentUserId(adminProfile.id);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(CURRENT_USER_KEY, adminProfile.id);
-        sessionStorage.setItem(CURRENT_USER_KEY, adminProfile.id);
-        localStorage.setItem('studentconnect_admin_secret', 'Admin@StudentConnect2025!');
-      }
-      return adminProfile;
+      return null;
     }
 
     if (password) {
@@ -922,6 +949,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.removeItem(CURRENT_USER_KEY);
       localStorage.removeItem('studentconnect_admin_secret');
       try {
+        fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
         const supabase = createClient();
         supabase.auth.signOut().catch(() => {});
       } catch {}
@@ -1962,12 +1990,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // 4. Cloud DB sync via Server API & direct Supabase fallback
     try {
-      const adminSecret = (typeof window !== 'undefined' && localStorage.getItem('studentconnect_admin_secret')) || 'Admin@StudentConnect2025!';
       await fetch('/api/admin/user-status', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': adminSecret,
         },
         body: JSON.stringify({ userId, status: 'approved' }),
       });
@@ -2020,12 +2046,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // 4. Cloud DB sync via Server API & direct Supabase fallback
     try {
-      const adminSecret = (typeof window !== 'undefined' && localStorage.getItem('studentconnect_admin_secret')) || 'Admin@StudentConnect2025!';
       await fetch('/api/admin/user-status', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': adminSecret,
         },
         body: JSON.stringify({ userId, status: 'rejected' }),
       });
@@ -2074,12 +2098,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {}
 
     try {
-      const adminSecret = (typeof window !== 'undefined' && localStorage.getItem('studentconnect_admin_secret')) || 'Admin@StudentConnect2025!';
       await fetch('/api/admin/user-status', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': adminSecret,
         },
         body: JSON.stringify({ userId, status: 'pending_approval' }),
       });

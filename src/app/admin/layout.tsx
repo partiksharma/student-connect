@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/lib/store';
@@ -11,8 +11,7 @@ import {
   AlertTriangle,
   LogOut,
   ExternalLink,
-  Users,
-  Building
+  Loader2,
 } from 'lucide-react';
 import { LogoIcon } from '@/components/ui/LogoIcon';
 
@@ -23,7 +22,8 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, profiles, projects, reports, logout, loginAsRole } = useApp();
+  const { currentUser, profiles, projects, reports, logout } = useApp();
+  const [sessionVerified, setSessionVerified] = useState<boolean | null>(null);
 
   // If on admin login page, just render children directly
   if (pathname === '/admin/login') {
@@ -34,7 +34,42 @@ export default function AdminLayout({
     );
   }
 
-  const isAuthorized = currentUser && currentUser.role === 'admin';
+  // Active Server-Side Session Verification
+  useEffect(() => {
+    let isMounted = true;
+
+    fetch('/api/admin/session')
+      .then(async (res) => {
+        if (!res.ok) {
+          if (isMounted) {
+            setSessionVerified(false);
+            router.replace('/admin/login');
+          }
+          return;
+        }
+        const data = await res.json().catch(() => ({}));
+        if (isMounted) {
+          if (data.authenticated) {
+            setSessionVerified(true);
+          } else {
+            setSessionVerified(false);
+            router.replace('/admin/login');
+          }
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSessionVerified(false);
+          router.replace('/admin/login');
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pathname, router]);
+
+  const isAuthorized = sessionVerified === true && currentUser && currentUser.role === 'admin';
 
   const pendingStudents = profiles.filter((p) => p.role === 'student' && (p.status === 'pending_approval' || (p.status as string) === 'pending')).length;
   const pendingBusinesses = profiles.filter((p) => p.role === 'business' && (p.status === 'pending_approval' || (p.status as string) === 'pending')).length;
@@ -42,7 +77,10 @@ export default function AdminLayout({
   const totalApprovalsPending = pendingStudents + pendingBusinesses + pendingProjects;
   const pendingReportsCount = reports.filter((r) => r.status === 'pending').length;
 
-  const handleAdminLogout = () => {
+  const handleAdminLogout = async () => {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' });
+    } catch {}
     logout();
     router.push('/admin/login');
   };
@@ -69,6 +107,17 @@ export default function AdminLayout({
       badgeColor: 'bg-rose-500 text-white',
     },
   ];
+
+  if (sessionVerified === null) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 text-amber-400 animate-spin mx-auto" />
+          <p className="text-xs text-slate-400 font-medium">Verifying Administrator Session...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthorized) {
     return (
@@ -198,7 +247,7 @@ export default function AdminLayout({
           <div className="flex items-center gap-3">
             <div className="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1.5 max-w-[200px] sm:max-w-none truncate">
               <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate">{currentUser?.email || 'admin@studentconnect.org'}</span>
+              <span className="truncate">{currentUser?.email || 'partiksharmabscc@gmail.com'}</span>
             </div>
           </div>
         </header>

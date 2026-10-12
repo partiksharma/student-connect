@@ -44,7 +44,7 @@ export default function AdminDashboardPage() {
         </div>
         <h2 className="text-2xl font-black text-[#111C16]">Admin Access Only</h2>
         <p className="text-xs text-stone-600">This area is restricted to platform moderators and administrators.</p>
-        <Link href="/login">
+        <Link href="/admin/login">
           <Button variant="primary">Log In as Admin</Button>
         </Link>
       </div>

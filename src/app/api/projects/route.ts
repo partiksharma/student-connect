@@ -209,8 +209,7 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get('id');
     const userIdHeader = req.headers.get('x-user-id');
-    const userRoleHeader = req.headers.get('x-user-role');
-    const isAdmin = userRoleHeader === 'admin' || verifyAdminRequest(req);
+    const isAdmin = verifyAdminRequest(req);
 
     if (!projectId) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });

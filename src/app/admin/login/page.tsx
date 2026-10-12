@@ -4,15 +4,12 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useApp } from '@/lib/store';
-import { ShieldCheck, Lock, AlertCircle, Key, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { ShieldCheck, Lock, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { LogoIcon } from '@/components/ui/LogoIcon';
-
-const ADMIN_EMAIL = 'admin@studentconnect.org';
-const ADMIN_PASSWORD = 'Admin@StudentConnect2025!';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { loginWithEmail, loginAsRole } = useApp();
+  const { switchUser, refreshData } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -24,26 +21,40 @@ export default function AdminLoginPage() {
     setErrorMsg('');
     setLoading(true);
 
-    const cleanEmail = email.trim().toLowerCase();
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
 
-    // Authenticate admin credentials
-    if (
-      (cleanEmail === ADMIN_EMAIL.toLowerCase() || cleanEmail === 'admin' || cleanEmail === 'admin@studentconnect.com') &&
-      (password === ADMIN_PASSWORD || password === 'admin' || password === 'Admin2025!')
-    ) {
-      await loginWithEmail('admin@studentconnect.org');
-      loginAsRole('admin');
-      router.push('/admin/dashboard');
-    } else {
-      setErrorMsg('Invalid administrator credentials. Please check your admin email and password.');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Invalid admin credentials.');
+        setPassword('');
+        return;
+      }
+
+      if (data.user) {
+        switchUser(data.user.id);
+        await refreshData().catch(() => {});
+        router.push('/admin/dashboard');
+      } else {
+        setErrorMsg('Invalid admin credentials.');
+        setPassword('');
+      }
+    } catch {
+      setErrorMsg('An error occurred during administrator authentication. Please try again.');
+      setPassword('');
+    } finally {
       setLoading(false);
     }
-  };
-
-  const fillCredentials = () => {
-    setEmail(ADMIN_EMAIL);
-    setPassword(ADMIN_PASSWORD);
-    setErrorMsg('');
   };
 
   return (
@@ -67,29 +78,8 @@ export default function AdminLoginPage() {
           </div>
         </div>
 
-        {/* Admin Credentials Info Card */}
-        <div className="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-3.5 space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-bold text-amber-400">
-            <span className="flex items-center gap-1.5">
-              <Key className="w-3.5 h-3.5" />
-              Admin Access Credentials
-            </span>
-            <button
-              type="button"
-              onClick={fillCredentials}
-              className="text-[10px] bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer"
-            >
-              Auto Fill
-            </button>
-          </div>
-          <div className="text-[11px] text-slate-300 font-mono space-y-0.5">
-            <div>Email: <span className="text-white font-semibold">admin@studentconnect.org</span></div>
-            <div>Password: <span className="text-white font-semibold">Admin@StudentConnect2025!</span></div>
-          </div>
-        </div>
-
         {errorMsg && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center gap-2">
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center gap-2.5">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
             <span>{errorMsg}</span>
           </div>
@@ -105,8 +95,9 @@ export default function AdminLoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@studentconnect.org"
-              className="w-full text-xs p-3 rounded-xl border border-slate-700 bg-slate-950 text-white outline-none focus:ring-2 focus:ring-amber-500"
+              placeholder="administrator@domain.com"
+              autoComplete="username"
+              className="w-full text-xs p-3 rounded-xl border border-slate-700 bg-slate-950 text-white outline-none focus:ring-2 focus:ring-amber-500 transition-all placeholder:text-slate-600"
             />
           </div>
 
@@ -121,13 +112,15 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full text-xs p-3 pr-10 rounded-xl border border-slate-700 bg-slate-950 text-white outline-none focus:ring-2 focus:ring-amber-500"
+                autoComplete="current-password"
+                className="w-full text-xs p-3 pr-10 rounded-xl border border-slate-700 bg-slate-950 text-white outline-none focus:ring-2 focus:ring-amber-500 transition-all placeholder:text-slate-600"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
                 title={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
