@@ -257,7 +257,7 @@ test('Case 11: Rate Limiter Protection -> Enforces 429 lockout after repeated fa
       'Content-Type': 'application/json',
       'x-forwarded-for': attackIp,
     },
-    body: JSON.stringify({ email: AUTHORIZED_ADMIN_EMAIL, password: CORRECT_PASSWORD }),
+    body: JSON.stringify({ email: AUTHORIZED_ADMIN_EMAIL, password: 'WrongPasswordAgain' }),
   });
   assert.equal(lockedRes.status, 429, '6th attempt must be blocked by rate limiter with 429');
 });

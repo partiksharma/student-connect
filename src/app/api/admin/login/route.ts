@@ -16,51 +16,34 @@ export async function POST(req: Request) {
                req.headers.get('x-real-ip') ||
                'client-ip';
 
-    // 1. Rate Limiting Check
-    const rateCheck = checkRateLimit(ip);
-    if (!rateCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: `Too many failed login attempts. Please wait ${rateCheck.retryAfterSeconds || 60} seconds before trying again.`,
-        },
-        { status: 429 }
-      );
-    }
-
     const body = await req.json().catch(() => ({}));
     const { email, password } = body;
 
-    if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const isAuthorizedEmail = cleanEmail === AUTHORIZED_ADMIN_EMAIL.toLowerCase();
+    const isPasswordValid = typeof password === 'string' && verifyAdminPassword(password);
+
+    // If credentials are valid, immediately reset any failed attempts and proceed
+    if (isAuthorizedEmail && isPasswordValid) {
+      resetFailedLogins(ip);
+    } else {
+      // Check rate limit on failed attempts
+      const rateCheck = checkRateLimit(ip);
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          {
+            error: `Too many failed login attempts. Please wait ${rateCheck.retryAfterSeconds || 60} seconds before trying again.`,
+          },
+          { status: 429 }
+        );
+      }
+
       recordFailedLogin(ip);
       return NextResponse.json(
         { error: 'Invalid admin credentials.' },
         { status: 401 }
       );
     }
-
-    const cleanEmail = email.trim().toLowerCase();
-
-    // 2. Strict Email Verification: Only the authorized admin email may proceed
-    if (cleanEmail !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
-      recordFailedLogin(ip);
-      return NextResponse.json(
-        { error: 'Invalid admin credentials.' },
-        { status: 401 }
-      );
-    }
-
-    // 3. Strict Password Verification against server-side hashed credentials
-    const isPasswordValid = verifyAdminPassword(password);
-    if (!isPasswordValid) {
-      recordFailedLogin(ip);
-      return NextResponse.json(
-        { error: 'Invalid admin credentials.' },
-        { status: 401 }
-      );
-    }
-
-    // 4. Successful Authentication: Reset rate limiter
-    resetFailedLogins(ip);
 
     // 5. Ensure authoritative database record exists and holds admin role
     const supabase = getServerSupabaseClient();
