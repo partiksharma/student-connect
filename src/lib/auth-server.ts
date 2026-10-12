@@ -15,7 +15,7 @@ export function getServerSupabaseClient() {
 }
 
 // Authorized Administrator Identity (Server-side enforced only)
-export const AUTHORIZED_ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'partiksharmabscc@gmail.com').toLowerCase().trim();
+export const AUTHORIZED_ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'partiksharmabsccs@gmail.com').toLowerCase().trim();
 export const ADMIN_SESSION_COOKIE = 'admin_session';
 
 // Cryptographic Secret for signing Admin Sessions

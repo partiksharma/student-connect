@@ -247,7 +247,7 @@ export default function AdminLayout({
           <div className="flex items-center gap-3">
             <div className="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1.5 max-w-[200px] sm:max-w-none truncate">
               <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate">{currentUser?.email || 'partiksharmabscc@gmail.com'}</span>
+              <span className="truncate">{currentUser?.email || 'partiksharmabsccs@gmail.com'}</span>
             </div>
           </div>
         </header>

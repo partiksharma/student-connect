@@ -777,7 +777,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const cleanInput = emailOrId.trim().toLowerCase();
 
     // Check for administrator account login via secure admin auth
-    if (cleanInput === 'partiksharmabscc@gmail.com') {
+    if (cleanInput === 'partiksharmabsccs@gmail.com') {
       if (password) {
         try {
           const res = await fetch('/api/admin/login', {

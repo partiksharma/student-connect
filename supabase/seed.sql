@@ -5,7 +5,7 @@
 -- 1. Demo User Profiles
 INSERT INTO public.profiles (id, email, role, status)
 VALUES
-    ('441a1482-929a-4311-a8f7-f2b69ae22835', 'partiksharmabscc@gmail.com', 'admin', 'approved'),
+    ('441a1482-929a-4311-a8f7-f2b69ae22835', 'partiksharmabsccs@gmail.com', 'admin', 'approved'),
     ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'sarah.chen@stanford.edu', 'student', 'approved'),
     ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23', 'marcus.vance@austin.edu', 'student', 'approved'),
     ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a24', 'elena.rostova@nyu.edu', 'student', 'pending_approval'),

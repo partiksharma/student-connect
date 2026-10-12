@@ -20,7 +20,7 @@ if (fs.existsSync(envPath)) {
 }
 
 const BASE_URL = 'http://localhost:3001';
-const AUTHORIZED_ADMIN_EMAIL = 'partiksharmabscc@gmail.com';
+const AUTHORIZED_ADMIN_EMAIL = 'partiksharmabsccs@gmail.com';
 const CORRECT_PASSWORD = process.env.ADMIN_PASSWORD;
 
 test('Case 1: Correct authorized admin email + correct password -> Login success and session cookie issued', async () => {
@@ -62,6 +62,7 @@ test('Case 2: Correct admin email + incorrect password -> Login rejected with ge
 
 test('Case 3: Any other email + correct password -> Login rejected', async () => {
   const otherEmails = [
+    'partiksharmabscc@gmail.com',
     'admin@studentconnect.org',
     'admin@studentconnect.com',
     'attacker@gmail.com',
