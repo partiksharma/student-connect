@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/lib/store';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { formatDate, formatCategoryName } from '@/lib/utils';
+import { resolveProjectId, resolveUserId } from '@/lib/aliases';
 import {
   Building,
   PlusCircle,
@@ -24,13 +25,17 @@ import {
 } from 'lucide-react';
 
 export default function BusinessDashboardPage() {
-  const { currentUser, currentBusiness, projects, applications, workspaces, feedbackList, submitFeedback } = useApp();
+  const { currentUser, currentBusiness, projects, applications, workspaces, feedbackList, submitFeedback, refreshData } = useApp();
 
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedWorkspaceForReview, setSelectedWorkspaceForReview] = useState<any | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewTestimonial, setReviewTestimonial] = useState('');
   const [reviewSubmittedSuccess, setReviewSubmittedSuccess] = useState(false);
+
+  useEffect(() => {
+    refreshData().catch(() => {});
+  }, [refreshData]);
 
   if (!currentUser) {
     return (
@@ -62,8 +67,16 @@ export default function BusinessDashboardPage() {
     );
   }
 
-  const myProjects = projects.filter((p) => p.business_id === currentUser?.id);
-  const myWorkspaces = workspaces.filter((ws) => ws.business_id === currentUser?.id);
+  const currentBizId = resolveUserId(currentUser?.id);
+  const myProjects = projects.filter((p) => {
+    const pBizId = resolveUserId(p.business_id);
+    return pBizId === currentBizId || p.business_id === currentUser?.id;
+  });
+
+  const myWorkspaces = workspaces.filter((ws) => {
+    const wsBizId = resolveUserId(ws.business_id);
+    return wsBizId === currentBizId || ws.business_id === currentUser?.id;
+  });
   const activeWorkspaces = myWorkspaces.filter((ws) => ws.status !== 'completed');
   const completedWorkspaces = myWorkspaces.filter((ws) => ws.status === 'completed');
 
@@ -94,12 +107,24 @@ export default function BusinessDashboardPage() {
   };
 
   // Find all applications across this business's projects with strict uniqueness per student & project
-  const myProjectIds = myProjects.map((p) => p.id);
+  const myProjectCanonicalIds = new Set<string>();
+  myProjects.forEach((p) => {
+    myProjectCanonicalIds.add(p.id);
+    myProjectCanonicalIds.add(resolveProjectId(p.id));
+  });
   
   const uniqueAppMap = new Map<string, (typeof applications)[0]>();
   applications.forEach((a) => {
-    if (myProjectIds.includes(a.project_id)) {
-      const key = `${a.project_id}::${a.student_id}`;
+    const aProjId = resolveProjectId(a.project_id);
+    const aStudentId = resolveUserId(a.student_id);
+    const belongsToMyProject = myProjectCanonicalIds.has(a.project_id) || myProjectCanonicalIds.has(aProjId);
+    const belongsToMyBiz = a.project?.business_id && (
+      resolveUserId(a.project.business_id) === currentBizId ||
+      a.project.business_id === currentUser.id
+    );
+
+    if (belongsToMyProject || belongsToMyBiz) {
+      const key = `${aProjId}::${aStudentId}`;
       if (!uniqueAppMap.has(key)) {
         uniqueAppMap.set(key, a);
       } else {

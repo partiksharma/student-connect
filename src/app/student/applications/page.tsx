@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/lib/store';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { formatDate, getCategoryBadgeClass, formatCategoryName } from '@/lib/utils';
+import { resolveProjectId, resolveUserId } from '@/lib/aliases';
 import {
   Briefcase,
   Clock,
@@ -17,9 +18,17 @@ import {
 } from 'lucide-react';
 
 export default function StudentApplicationsPage() {
-  const { currentUser, applications, workspaces } = useApp();
+  const { currentUser, applications, workspaces, refreshData } = useApp();
 
-  const myApplications = applications.filter((a) => a.student_id === currentUser?.id);
+  useEffect(() => {
+    refreshData().catch(() => {});
+  }, [refreshData]);
+
+  const currentStudentId = resolveUserId(currentUser?.id);
+  const myApplications = applications.filter((a) => {
+    const aStudentId = resolveUserId(a.student_id);
+    return aStudentId === currentStudentId || a.student_id === currentUser?.id;
+  });
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -40,7 +49,8 @@ export default function StudentApplicationsPage() {
             const isRejected = app.status === 'rejected';
 
             // Find corresponding workspace if accepted
-            const ws = workspaces.find((w) => w.project_id === app.project_id);
+            const appProjCanonical = resolveProjectId(app.project_id);
+            const ws = workspaces.find((w) => resolveProjectId(w.project_id) === appProjCanonical || w.project_id === app.project_id);
 
             return (
               <div

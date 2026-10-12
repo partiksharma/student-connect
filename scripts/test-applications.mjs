@@ -222,3 +222,81 @@ test('Project Deduplication: different projects from same business are preserved
   const result = mergeProjects([projA], [projB]);
   assert.equal(result.length, 2, 'Should preserve both unique project listings');
 });
+
+// Test alias normalization logic
+const PROJECT_ALIASES = {
+  'p-101': 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a41',
+  'p-102': 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a42',
+  'proj-thumbnail-designer': 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a45',
+};
+
+const USER_ALIASES = {
+  'nextphase-client-id': 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36',
+};
+
+function resolveProjectId(id) {
+  if (!id) return '';
+  return PROJECT_ALIASES[id.trim()] || id.trim();
+}
+
+function resolveUserId(id) {
+  if (!id) return '';
+  return USER_ALIASES[id.trim()] || id.trim();
+}
+
+test('Alias normalization: legacy p-101 maps to canonical Supabase UUID', () => {
+  assert.equal(resolveProjectId('p-101'), 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a41');
+  assert.equal(resolveProjectId('proj-thumbnail-designer'), 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a45');
+  assert.equal(resolveUserId('nextphase-client-id'), 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36');
+  // Pass-through for valid UUIDs
+  assert.equal(resolveProjectId('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a41'), 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a41');
+});
+
+test('Cross-Device Client Dashboard Filter: Client sees applications regardless of mobile alias or UUID', () => {
+  const clientUser = { id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36', role: 'business' };
+  const clientProjects = [
+    {
+      id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a45',
+      business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36',
+      title: 'Thumbnail Designer for YouTube & Social Media',
+    }
+  ];
+
+  // Applications from mobile devices (some submitted with alias, some with UUID)
+  const incomingApplications = [
+    {
+      id: 'app-mobile-1',
+      project_id: 'proj-thumbnail-designer', // submitted from mobile using alias
+      student_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+      pitch_note: 'Mobile student pitch note',
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a56',
+      project_id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a45', // from desktop using UUID
+      student_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23',
+      pitch_note: 'Desktop student pitch note',
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    }
+  ];
+
+  const currentBizId = resolveUserId(clientUser.id);
+  const myProjectCanonicalIds = new Set();
+  clientProjects.forEach((p) => {
+    myProjectCanonicalIds.add(p.id);
+    myProjectCanonicalIds.add(resolveProjectId(p.id));
+  });
+
+  const visibleApps = incomingApplications.filter((a) => {
+    const aProjId = resolveProjectId(a.project_id);
+    return myProjectCanonicalIds.has(a.project_id) || myProjectCanonicalIds.has(aProjId);
+  });
+
+  // Client must see BOTH applications
+  assert.equal(visibleApps.length, 2, 'Client should see both mobile-submitted and desktop-submitted applications');
+  assert.equal(visibleApps[0].student_id, 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
+  assert.equal(visibleApps[1].student_id, 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23');
+});
+

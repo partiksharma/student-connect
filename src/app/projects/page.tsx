@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/lib/store';
 import { ProjectCard } from '@/components/ui/ProjectCard';
@@ -10,7 +10,7 @@ import { Project } from '@/lib/types/database';
 import { Search, Filter, Check, Briefcase } from 'lucide-react';
 
 export default function ProjectsMarketplacePage() {
-  const { projects, applyToProject, currentUser } = useApp();
+  const { projects, applyToProject, currentUser, refreshData } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProjectForApply, setSelectedProjectForApply] = useState<Project | null>(null);
@@ -18,6 +18,10 @@ export default function ProjectsMarketplacePage() {
   const [applySuccess, setApplySuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
+
+  useEffect(() => {
+    refreshData().catch(() => {});
+  }, [refreshData]);
 
   const openProjects = projects.filter((p) => p.status === 'open');
 

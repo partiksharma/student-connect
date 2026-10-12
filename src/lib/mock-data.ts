@@ -42,7 +42,7 @@ export const INITIAL_PROFILES: Profile[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'nextphase-client-id',
+    id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36',
     email: 'nextphase@gmail.com',
     role: 'business',
     status: 'approved',
@@ -101,7 +101,7 @@ export const INITIAL_STUDENTS: StudentProfile[] = [
 
 export const INITIAL_BUSINESSES: BusinessProfile[] = [
   {
-    user_id: 'nextphase-client-id',
+    user_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36',
     business_name: 'nextphase',
     industry: 'Media & Digital Content',
     business_size: '1-10 employees',
@@ -164,7 +164,7 @@ export const INITIAL_BUSINESSES: BusinessProfile[] = [
 
 export const INITIAL_PROJECTS: Project[] = [
   {
-    id: 'p-pending-1',
+    id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a46',
     business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a35',
     title: 'TikTok Short-Form Video Producer & Creator Strategy',
     category: 'video_media',
@@ -187,8 +187,8 @@ export const INITIAL_PROJECTS: Project[] = [
     business: INITIAL_BUSINESSES[3]
   },
   {
-    id: 'p-pending-2',
-    business_id: 'nextphase-client-id',
+    id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a47',
+    business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36',
     title: 'Mobile App UI Wireframe & Interactive Prototype',
     category: 'design',
     description: 'We are conceptualizing a new creator collaboration tool and need a UI/UX design student to build low and high-fidelity wireframes in Figma.',
@@ -210,8 +210,8 @@ export const INITIAL_PROJECTS: Project[] = [
     business: INITIAL_BUSINESSES[0]
   },
   {
-    id: 'proj-thumbnail-designer',
-    business_id: 'nextphase-client-id',
+    id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a45',
+    business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36',
     title: 'Thumbnail Designer for YouTube & Social Media',
     category: 'design',
     description: 'Looking for a creative thumbnail designer to craft high-CTR, vibrant YouTube thumbnails and Instagram cover graphics for our upcoming digital video releases.',
@@ -234,7 +234,7 @@ export const INITIAL_PROJECTS: Project[] = [
     business: INITIAL_BUSINESSES[0]
   },
   {
-    id: 'p-101',
+    id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a41',
     business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
     title: 'Mobile-Responsive Online Menu & Catering Booking Page',
     category: 'web_tech',
@@ -258,7 +258,7 @@ export const INITIAL_PROJECTS: Project[] = [
     business: INITIAL_BUSINESSES[1]
   },
   {
-    id: 'p-102',
+    id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a42',
     business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a34',
     title: 'Instagram Growth Strategy & Spring Workshop Reel Templates',
     category: 'social_media',
@@ -281,7 +281,7 @@ export const INITIAL_PROJECTS: Project[] = [
     business: INITIAL_BUSINESSES[2]
   },
   {
-    id: 'p-rejected-1',
+    id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a48',
     business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
     title: 'Automated Direct Messaging & Aggressive Cold Outreach Campaign',
     category: 'marketing',
@@ -300,7 +300,7 @@ export const INITIAL_PROJECTS: Project[] = [
     business: INITIAL_BUSINESSES[1]
   },
   {
-    id: 'p-103',
+    id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a43',
     business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a35',
     title: 'Brand Identity & Member Onboarding Welcome Packet',
     category: 'design',
@@ -323,7 +323,7 @@ export const INITIAL_PROJECTS: Project[] = [
     business: INITIAL_BUSINESSES[3]
   },
   {
-    id: 'p-104',
+    id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
     business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
     title: 'Local SEO Audit & Google Business Profile Optimization',
     category: 'marketing',
@@ -349,8 +349,8 @@ export const INITIAL_PROJECTS: Project[] = [
 
 export const INITIAL_APPLICATIONS: Application[] = [
   {
-    id: 'app-thumbnail-sarah',
-    project_id: 'proj-thumbnail-designer',
+    id: 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55',
+    project_id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a45',
     student_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
     pitch_note: 'Hi nextphase! I am an experienced visual designer specializing in high-CTR YouTube thumbnails and social graphics. I have created thumbnails for creator channels averaging 100k+ views using high-contrast color grading, 3D text styling, and emotional facial emphasis. I can deliver 3 concept drafts in 24 hours!',
     estimated_days: 14,
@@ -364,11 +364,11 @@ export const INITIAL_APPLICATIONS: Application[] = [
     created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
     updated_at: new Date().toISOString(),
     student: INITIAL_STUDENTS[0],
-    project: INITIAL_PROJECTS[0]
+    project: INITIAL_PROJECTS[2]
   },
   {
-    id: 'app-thumbnail-alex',
-    project_id: 'proj-thumbnail-designer',
+    id: 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a56',
+    project_id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a45',
     student_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23',
     pitch_note: 'Hello nextphase! As a digital marketing & content creator senior, I specialize in thumbnail A/B testing psychology (click triggers, subject cutouts, vibrant borders). I would love to design your thumbnails and help optimize your YouTube CTR!',
     estimated_days: 10,
@@ -381,11 +381,11 @@ export const INITIAL_APPLICATIONS: Application[] = [
     created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
     updated_at: new Date().toISOString(),
     student: INITIAL_STUDENTS[1],
-    project: INITIAL_PROJECTS[0]
+    project: INITIAL_PROJECTS[2]
   },
   {
-    id: 'app-501',
-    project_id: 'p-101',
+    id: 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a51',
+    project_id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a41',
     student_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
     pitch_note: 'Hi Elena! I love Hearth & Stone (your rosemary sourdough is incredible!). I am a junior CS student specializing in fast, mobile-responsive Next.js & Tailwind websites. I can build a clean menu page and automated catering booking form in under 2 weeks so your customers can order seamlessly on mobile.',
     estimated_days: 14,
@@ -399,11 +399,11 @@ export const INITIAL_APPLICATIONS: Application[] = [
     created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
     updated_at: new Date().toISOString(),
     student: INITIAL_STUDENTS[0],
-    project: INITIAL_PROJECTS[1]
+    project: INITIAL_PROJECTS[3]
   },
   {
-    id: 'app-502',
-    project_id: 'p-102',
+    id: 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a52',
+    project_id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a42',
     student_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23',
     pitch_note: 'Hello David! As an avid houseplant collector and senior marketing major, I would love to build your 30-day spring campaign. I have previously grown an eco-brand Instagram page by 240% using short educational reels on plant care. I will provide high-quality Canva templates that your team can reuse anytime!',
     estimated_days: 10,
@@ -417,14 +417,14 @@ export const INITIAL_APPLICATIONS: Application[] = [
     created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
     updated_at: new Date().toISOString(),
     student: INITIAL_STUDENTS[1],
-    project: INITIAL_PROJECTS[2]
+    project: INITIAL_PROJECTS[4]
   }
 ];
 
 export const INITIAL_FEEDBACK: Feedback[] = [
   {
     id: 'fb-1',
-    project_id: 'p-prev-1',
+    project_id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a41',
     author_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
     recipient_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
     rating: 5,
@@ -438,7 +438,7 @@ export const INITIAL_FEEDBACK: Feedback[] = [
   },
   {
     id: 'fb-2',
-    project_id: 'p-prev-2',
+    project_id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a42',
     author_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a34',
     recipient_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23',
     rating: 5,
@@ -455,9 +455,9 @@ export const INITIAL_FEEDBACK: Feedback[] = [
 export const INITIAL_WORKSPACES: Workspace[] = [
   {
     id: 'ws-thumbnail-designer-1',
-    project_id: 'proj-thumbnail-designer',
+    project_id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a45',
     student_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
-    business_id: 'nextphase-client-id',
+    business_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36',
     status: 'in_progress',
     started_at: new Date(Date.now() - 2 * 86400000).toISOString(),
     created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
@@ -468,7 +468,7 @@ export const INITIAL_WORKSPACES: Workspace[] = [
         workspace_id: 'ws-thumbnail-designer-1',
         title: 'Kickoff: Discuss brand guidelines, fonts, and video themes',
         is_completed: true,
-        created_by: 'nextphase-client-id',
+        created_by: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36',
         created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
       },
       {
@@ -492,7 +492,7 @@ export const INITIAL_WORKSPACES: Workspace[] = [
         workspace_id: 'ws-thumbnail-designer-1',
         title: 'Final review & handoff of source PSD files and Instagram covers',
         is_completed: false,
-        created_by: 'nextphase-client-id',
+        created_by: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36',
         created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
       }
     ],
@@ -500,7 +500,7 @@ export const INITIAL_WORKSPACES: Workspace[] = [
       {
         id: 'msg-thumb-1',
         workspace_id: 'ws-thumbnail-designer-1',
-        sender_id: 'nextphase-client-id',
+        sender_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36',
         sender_name: 'nextphase',
         sender_role: 'business',
         content: 'Hi Sarah! Super excited to collaborate with you on the thumbnail designer project for nextphase.',
@@ -520,7 +520,7 @@ export const INITIAL_WORKSPACES: Workspace[] = [
       {
         id: 'msg-thumb-3',
         workspace_id: 'ws-thumbnail-designer-1',
-        sender_id: 'nextphase-client-id',
+        sender_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36',
         sender_name: 'nextphase',
         sender_role: 'business',
         content: 'These concepts look fantastic! Let us proceed with batch 1 with the high contrast typography.',

@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useApp } from '@/lib/store';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { formatDate } from '@/lib/utils';
+import { resolveProjectId, resolveUserId } from '@/lib/aliases';
 import {
   Users,
   GraduationCap,
@@ -22,15 +23,23 @@ import {
 export default function BusinessApplicantsReviewPage() {
   const params = useParams();
   const router = useRouter();
-  const { projects, applications, updateApplicationStatus, workspaces } = useApp();
+  const { projects, applications, updateApplicationStatus, workspaces, refreshData } = useApp();
 
   const projectId = params?.id as string;
-  const project = projects.find((p) => p.id === projectId);
+  const canonicalProjectId = resolveProjectId(projectId);
+  const project = projects.find((p) => resolveProjectId(p.id) === canonicalProjectId || p.id === projectId);
+
+  useEffect(() => {
+    refreshData().catch(() => {});
+  }, [refreshData]);
   
-  const rawProjectApps = applications.filter((a) => a.project_id === projectId);
+  const rawProjectApps = applications.filter((a) => {
+    const aProjId = resolveProjectId(a.project_id);
+    return aProjId === canonicalProjectId || a.project_id === projectId;
+  });
   const projectAppsMap = new Map<string, (typeof applications)[0]>();
   rawProjectApps.forEach((a) => {
-    const key = a.student_id;
+    const key = resolveUserId(a.student_id);
     if (!projectAppsMap.has(key)) {
       projectAppsMap.set(key, a);
     } else {

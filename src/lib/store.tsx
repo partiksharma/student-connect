@@ -19,6 +19,7 @@ import {
   AppNotification
 } from './types/database';
 import { generateUUID } from './utils';
+import { resolveProjectId, resolveUserId, isValidUUID } from './aliases';
 import {
   INITIAL_PROFILES,
   INITIAL_STUDENTS,
@@ -174,17 +175,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const processApp = (app: Application) => {
       if (!app || !app.project_id || !app.student_id) return;
-      const compositeKey = `${app.project_id}::${app.student_id}`;
+      const canonicalP = resolveProjectId(app.project_id);
+      const canonicalS = resolveUserId(app.student_id);
+      const compositeKey = `${canonicalP}::${canonicalS}`;
       const existing = map.get(compositeKey);
 
       if (!existing) {
-        map.set(compositeKey, app);
+        const normalizedApp: Application = {
+          ...app,
+          project_id: canonicalP,
+          student_id: canonicalS,
+        };
+        map.set(compositeKey, normalizedApp);
         idToComposite.set(app.id, compositeKey);
+        if (canonicalP !== app.project_id) idToComposite.set(canonicalP, compositeKey);
       } else {
         // Decide authoritative ID: real DB UUIDs supersede temp 'app-...' IDs
         const existingIsTemp = existing.id.startsWith('app-');
         const incomingIsTemp = app.id.startsWith('app-');
-        const chosenId = (!incomingIsTemp && existingIsTemp) ? app.id : (existingIsTemp ? app.id : existing.id);
+        const chosenId = (!incomingIsTemp && existingIsTemp) ? app.id : (existingIsTemp ? app.id : (isValidUUID(app.id) ? app.id : existing.id));
 
         const isIncomingNewer = new Date(app.updated_at || app.created_at).getTime() >= new Date(existing.updated_at || existing.created_at).getTime();
 
@@ -192,6 +201,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...existing,
           ...app,
           id: chosenId,
+          project_id: canonicalP,
+          student_id: canonicalS,
           status: app.status && app.status !== 'pending' ? app.status : existing.status,
           pitch_note: app.pitch_note || existing.pitch_note,
           student: app.student || existing.student,
@@ -201,6 +212,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         map.set(compositeKey, merged);
         idToComposite.set(chosenId, compositeKey);
+        if (app.id && app.id !== chosenId) idToComposite.set(app.id, compositeKey);
       }
     };
 
@@ -219,19 +231,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const processProj = (proj: Project) => {
       if (!proj || !proj.title) return;
+      const canonicalId = resolveProjectId(proj.id);
+      const canonicalBiz = resolveUserId(proj.business_id);
       const cleanTitle = proj.title.trim().toLowerCase();
-      const compositeKey = proj.business_id ? `${proj.business_id}::${cleanTitle}` : proj.id;
+      const compositeKey = canonicalBiz ? `${canonicalBiz}::${cleanTitle}` : canonicalId;
       
-      const existing = map.get(compositeKey) || (proj.id && idToComposite.has(proj.id) ? map.get(idToComposite.get(proj.id)!) : undefined);
+      const existing = map.get(compositeKey) || (canonicalId && idToComposite.has(canonicalId) ? map.get(idToComposite.get(canonicalId)!) : undefined);
 
       if (!existing) {
-        map.set(compositeKey, proj);
-        if (proj.id) idToComposite.set(proj.id, compositeKey);
+        const normalizedProj: Project = {
+          ...proj,
+          id: canonicalId,
+          business_id: canonicalBiz,
+        };
+        map.set(compositeKey, normalizedProj);
+        if (canonicalId) idToComposite.set(canonicalId, compositeKey);
+        if (proj.id && proj.id !== canonicalId) idToComposite.set(proj.id, compositeKey);
       } else {
         // Real persistent UUIDs supersede temporary timestamp IDs
         const existingIsTemp = existing.id.startsWith('proj-') && existing.id.length > 10;
-        const incomingIsTemp = proj.id.startsWith('proj-') && proj.id.length > 10;
-        const chosenId = (!incomingIsTemp && existingIsTemp) ? proj.id : (existingIsTemp ? proj.id : existing.id);
+        const incomingIsTemp = canonicalId.startsWith('proj-') && canonicalId.length > 10;
+        const chosenId = (!incomingIsTemp && existingIsTemp) ? canonicalId : (existingIsTemp ? canonicalId : (isValidUUID(canonicalId) ? canonicalId : existing.id));
 
         const isIncomingNewer = new Date(proj.updated_at || proj.created_at).getTime() >= new Date(existing.updated_at || existing.created_at).getTime();
 
@@ -239,7 +259,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...existing,
           ...proj,
           id: chosenId,
-          business_id: proj.business_id || existing.business_id,
+          business_id: canonicalBiz || existing.business_id,
           business: proj.business || existing.business,
           status: proj.status && proj.status !== 'pending_approval' ? proj.status : (existing.status || proj.status),
           applicant_count: Math.max(proj.applicant_count || 0, existing.applicant_count || 0),
@@ -248,6 +268,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         map.set(compositeKey, merged);
         if (chosenId) idToComposite.set(chosenId, compositeKey);
+        if (canonicalId && canonicalId !== chosenId) idToComposite.set(canonicalId, compositeKey);
         if (proj.id && proj.id !== chosenId) idToComposite.set(proj.id, compositeKey);
       }
     };
@@ -1404,8 +1425,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Your student account has been rejected. Applications are restricted.');
     }
 
+    const canonicalProjectId = resolveProjectId(projectId);
+    const canonicalStudentId = resolveUserId(currentUser.id);
+
     // Prevent duplicate application submission to the same project
-    const alreadyApplied = applications.some((a) => a.project_id === projectId && a.student_id === currentUser.id);
+    const alreadyApplied = applications.some((a) => {
+      const aP = resolveProjectId(a.project_id);
+      const aS = resolveUserId(a.student_id);
+      return (aP === canonicalProjectId || a.project_id === projectId) && (aS === canonicalStudentId || a.student_id === currentUser.id);
+    });
     if (alreadyApplied) {
       throw new Error('You have already submitted an application for this project.');
     }
@@ -1413,9 +1441,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const tempAppId = `app-${Date.now()}`;
     const newApp: Application = {
       id: tempAppId,
-      project_id: projectId,
-      student_id: currentUser.id,
-      pitch_note: pitchNote,
+      project_id: canonicalProjectId,
+      student_id: canonicalStudentId,
+      pitch_note: pitchNote.trim(),
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -1425,20 +1453,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Optimistically update applications and project applicant counter with strict deduplication
     setApplications((prev) => mergeApplications(prev, [newApp]));
     setProjects((prev) =>
-      prev.map((p) => (p.id === projectId ? { ...p, applicant_count: (p.applicant_count || 0) + 1 } : p))
+      prev.map((p) => {
+        const pCan = resolveProjectId(p.id);
+        if (pCan === canonicalProjectId || p.id === projectId) {
+          return { ...p, applicant_count: (p.applicant_count || 0) + 1 };
+        }
+        return p;
+      })
     );
 
     // Create a real-time Notification for the client business owner
-    const proj = projects.find((p) => p.id === projectId);
+    const proj = projects.find((p) => resolveProjectId(p.id) === canonicalProjectId || p.id === projectId);
     if (proj && proj.business_id) {
       const studentName = currentStudent?.full_name || (currentUser.email ? currentUser.email.split('@')[0] : 'Student');
       const appNotif: AppNotification = {
         id: `notif-app-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        user_id: proj.business_id,
+        user_id: resolveUserId(proj.business_id),
         type: 'message',
         title: '📩 New Student Application',
         message: `${studentName} submitted an application for your project "${proj.title}".`,
-        project_id: proj.id,
+        project_id: canonicalProjectId,
         is_read: false,
         created_at: new Date().toISOString(),
       };
@@ -1453,9 +1487,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          project_id: projectId,
-          student_id: currentUser.id,
-          pitch_note: pitchNote,
+          project_id: canonicalProjectId,
+          student_id: canonicalStudentId,
+          pitch_note: pitchNote.trim(),
         }),
       });
 
@@ -1473,20 +1507,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         const errData = await res.json().catch(() => ({}));
-        const errMsg = errData.error || 'Failed to save application';
+        const errMsg = errData.error || 'Failed to save application to server';
         console.error('Application save failed:', errMsg);
         // Remove the optimistic entry since it failed
-        if (res.status === 409) {
-          // Duplicate — remove local optimistic entry
-          setApplications((prev) => prev.filter((a) => a.id !== tempAppId));
-          throw new Error(errMsg);
-        }
+        setApplications((prev) => prev.filter((a) => a.id !== tempAppId));
+        setProjects((prev) =>
+          prev.map((p) => {
+            const pCan = resolveProjectId(p.id);
+            if (pCan === canonicalProjectId || p.id === projectId) {
+              return { ...p, applicant_count: Math.max(0, (p.applicant_count || 1) - 1) };
+            }
+            return p;
+          })
+        );
+        throw new Error(errMsg);
       }
     } catch (err: any) {
-      if (err.message && !err.message.includes('fetch')) {
-        throw err;
-      }
-      console.warn('Notice saving application to database:', err);
+      // Always revert optimistic updates on any failure
+      setApplications((prev) => prev.filter((a) => a.id !== tempAppId));
+      setProjects((prev) =>
+        prev.map((p) => {
+          const pCan = resolveProjectId(p.id);
+          if (pCan === canonicalProjectId || p.id === projectId) {
+            return { ...p, applicant_count: Math.max(0, (p.applicant_count || 1) - 1) };
+          }
+          return p;
+        })
+      );
+      throw err;
     }
 
     // Save to LocalStorage with the saved app (real ID)

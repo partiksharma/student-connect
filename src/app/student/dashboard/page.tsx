@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/lib/store';
 import { ProjectCard } from '@/components/ui/ProjectCard';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { resolveProjectId, resolveUserId } from '@/lib/aliases';
 import {
   GraduationCap,
   Briefcase,
@@ -17,7 +18,11 @@ import {
 } from 'lucide-react';
 
 export default function StudentDashboardPage() {
-  const { currentUser, currentStudent, applications, workspaces, projects } = useApp();
+  const { currentUser, currentStudent, applications, workspaces, projects, refreshData } = useApp();
+
+  useEffect(() => {
+    refreshData().catch(() => {});
+  }, [refreshData]);
 
   if (!currentUser) {
     return (
@@ -49,13 +54,26 @@ export default function StudentDashboardPage() {
     );
   }
 
-  const myApplications = applications.filter((a) => a.student_id === currentUser?.id);
-  const myWorkspaces = workspaces.filter((ws) => ws.student_id === currentUser?.id);
+  const currentStudentId = resolveUserId(currentUser?.id);
+  const myApplications = applications.filter((a) => {
+    const aStudentId = resolveUserId(a.student_id);
+    return aStudentId === currentStudentId || a.student_id === currentUser?.id;
+  });
+  const myWorkspaces = workspaces.filter((ws) => {
+    const wsStudentId = resolveUserId(ws.student_id);
+    return wsStudentId === currentStudentId || ws.student_id === currentUser?.id;
+  });
   const activeWorkspaces = myWorkspaces.filter((ws) => ws.status !== 'completed');
   const completedWorkspaces = myWorkspaces.filter((ws) => ws.status === 'completed');
 
+  const myAppliedProjectIds = new Set<string>();
+  myApplications.forEach((a) => {
+    myAppliedProjectIds.add(a.project_id);
+    myAppliedProjectIds.add(resolveProjectId(a.project_id));
+  });
+
   const recommendedProjects = projects
-    .filter((p) => p.status === 'open' && !myApplications.some((a) => a.project_id === p.id))
+    .filter((p) => p.status === 'open' && !myAppliedProjectIds.has(p.id) && !myAppliedProjectIds.has(resolveProjectId(p.id)))
     .slice(0, 3);
 
   const acceptedApplications = myApplications.filter((a) => a.status === 'accepted');

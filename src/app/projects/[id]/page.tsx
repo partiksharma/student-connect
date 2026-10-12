@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { formatCategoryName, getCategoryBadgeClass, formatDate } from '@/lib/utils';
+import { resolveProjectId } from '@/lib/aliases';
 import {
   Clock,
   Calendar,
@@ -32,7 +33,8 @@ export default function ProjectDetailPage() {
   const [applyError, setApplyError] = useState<string | null>(null);
 
   const projectId = params?.id as string;
-  const project = projects.find((p) => p.id === projectId);
+  const canonicalProjectId = resolveProjectId(projectId);
+  const project = projects.find((p) => resolveProjectId(p.id) === canonicalProjectId || p.id === projectId);
 
   if (!project) {
     return (
